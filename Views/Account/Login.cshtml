@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/dispatcher.css" asp-append-version="true" />
     <script>
-        // Theme synchron uebernehmen, damit Login-Form-Felder zur Auswahl passen
         (function () {
             try {
                 var stored = localStorage.getItem('uent-theme');
@@ -29,39 +28,106 @@
 
 <div class="login-stage">
     <div class="login-card">
-        <div class="login-logo">
+        <div class="login-logo login-logo-xl">
             <img src="~/images/merkur-logo.svg" alt="Merkur Privatbank" />
         </div>
-        <div class="login-title">UENT Dispatcher</div>
-        <div class="login-subtitle">Wöchentliche Auslosung für den Jour fixe</div>
+        <div class="login-title">UENT Dispatcher Auslosung</div>
 
         <div class="login-error" id="loginError"></div>
 
-        <form id="loginForm" autocomplete="on">
-            <div class="form-row">
-                <label class="form-label" for="benutzername">Benutzername</label>
-                <input type="text" id="benutzername" class="form-control" autofocus required />
-            </div>
-            <div class="form-row">
-                <label class="form-label" for="passwort">Passwort</label>
-                <input type="password" id="passwort" class="form-control" required />
-            </div>
-            <button type="submit" class="btn-mc btn-mc-primary btn-mc-block btn-mc-lg">
+        <!-- ── User-Modus (Default): nur Anmelden-Button ── -->
+        <div id="userMode">
+            <button type="button" class="btn-mc btn-mc-primary btn-mc-block btn-mc-lg" id="userLoginBtn" onclick="userLogin()">
                 <i class="bi bi-box-arrow-in-right"></i> Anmelden
             </button>
-        </form>
+        </div>
 
-        <div class="login-hint">
-            Standard-Zugang: <code>admin</code> / <code>Admin1234!</code><br/>
-            (Bitte nach erstem Login ändern)
+        <!-- ── Admin-Modus: klassische Anmeldung mit Username + Passwort ── -->
+        <div id="adminMode" style="display:none;">
+            <form id="loginForm" autocomplete="on">
+                <div class="form-row">
+                    <label class="form-label" for="benutzername">Admin-Benutzername</label>
+                    <input type="text" id="benutzername" class="form-control" autocomplete="username" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="passwort">Passwort</label>
+                    <input type="password" id="passwort" class="form-control" autocomplete="current-password" />
+                </div>
+                <button type="submit" class="btn-mc btn-mc-primary btn-mc-block btn-mc-lg" id="adminLoginBtn">
+                    <i class="bi bi-shield-lock"></i> Als Admin anmelden
+                </button>
+            </form>
         </div>
     </div>
 </div>
 
+<!-- ── Modus-Toggle unten rechts ── -->
+<div class="login-mode-corner" id="modeCorner">
+    <span class="login-mode-label-user">User-Zugriff</span>
+    <button type="button" class="login-mode-toggle" id="modeToggle" onclick="toggleLoginMode()" aria-label="Anmeldemodus wechseln"></button>
+    <span class="login-mode-label-admin">Admin-Zugriff</span>
+</div>
+
 <script>
+    var loginMode = 'user';
+
+    function toggleLoginMode() {
+        loginMode = loginMode === 'user' ? 'admin' : 'user';
+        var corner = document.getElementById('modeCorner');
+        var toggle = document.getElementById('modeToggle');
+        var userMode = document.getElementById('userMode');
+        var adminMode = document.getElementById('adminMode');
+        var err = document.getElementById('loginError');
+        err.style.display = 'none';
+
+        if (loginMode === 'admin') {
+            corner.classList.add('admin');
+            toggle.classList.add('admin');
+            userMode.style.display = 'none';
+            adminMode.style.display = 'block';
+            setTimeout(function () {
+                var b = document.getElementById('benutzername');
+                if (b) b.focus();
+            }, 60);
+        } else {
+            corner.classList.remove('admin');
+            toggle.classList.remove('admin');
+            userMode.style.display = 'block';
+            adminMode.style.display = 'none';
+        }
+    }
+
+    var RETURN_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(returnUrl));
+
+    async function userLogin() {
+        var btn = document.getElementById('userLoginBtn');
+        var err = document.getElementById('loginError');
+        err.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Anmelden …';
+        try {
+            var res = await fetch('/Account/UserLogin', { method: 'POST' });
+            var data = await res.json();
+            if (data.ok) {
+                window.location.href = RETURN_URL;
+            } else {
+                err.textContent = data.error || 'Anmeldung fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Anmelden';
+            }
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Anmelden';
+        }
+    }
+
     document.getElementById('loginForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         var err = document.getElementById('loginError');
+        var btn = document.getElementById('adminLoginBtn');
         err.style.display = 'none';
         var benutzername = document.getElementById('benutzername').value.trim();
         var passwort = document.getElementById('passwort').value;
@@ -70,6 +136,8 @@
             err.style.display = 'block';
             return;
         }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Anmelden …';
         try {
             var res = await fetch('/Account/Login', {
                 method: 'POST',
@@ -78,14 +146,18 @@
             });
             var data = await res.json();
             if (data.ok) {
-                window.location.href = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(returnUrl));
+                window.location.href = RETURN_URL;
             } else {
                 err.textContent = data.error || 'Anmeldung fehlgeschlagen.';
                 err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-shield-lock"></i> Als Admin anmelden';
             }
         } catch (e) {
             err.textContent = 'Verbindungsfehler: ' + e.message;
             err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-shield-lock"></i> Als Admin anmelden';
         }
     });
 </script>

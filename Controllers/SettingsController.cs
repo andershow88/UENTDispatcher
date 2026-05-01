@@ -59,7 +59,7 @@ public class SettingsController : Controller
 
     // ── Benutzerverwaltung ──────────────────────────────────────────────
 
-    public record CreateUserRequest(string Benutzername, string Anzeigename, string Passwort, string Rolle);
+    public record CreateUserRequest(string Benutzername, string Anzeigename, string Rolle);
 
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest req)
@@ -68,7 +68,6 @@ public class SettingsController : Controller
         if (req == null) return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var benutzername = (req.Benutzername ?? "").Trim();
         var anzeigename = (req.Anzeigename ?? "").Trim();
-        var passwort = req.Passwort ?? "";
         var rolle = (req.Rolle ?? "").Trim();
 
         if (string.IsNullOrEmpty(benutzername))
@@ -77,27 +76,132 @@ public class SettingsController : Controller
             return Json(new { ok = false, error = "Benutzername ist zu lang (max. 100)." });
         if (string.IsNullOrEmpty(anzeigename))
             return Json(new { ok = false, error = "Anzeigename ist Pflicht." });
-        if (passwort.Length < 4 || passwort.Length > 200)
-            return Json(new { ok = false, error = "Passwort muss zwischen 4 und 200 Zeichen lang sein." });
         if (rolle != "Admin" && rolle != "User")
             return Json(new { ok = false, error = "Rolle muss 'Admin' oder 'User' sein." });
 
         var exists = await _db.Users.AnyAsync(u => u.Benutzername == benutzername);
         if (exists) return Json(new { ok = false, error = "Benutzername ist bereits vergeben." });
 
+        // Setup-Token generieren — User setzt das Passwort selbst ueber den Link.
+        // Bis dahin: IstAktiv=false (Konto kann nicht eingeloggt werden).
+        var token = GenerateUrlToken(32);
         var u = new AppUser
         {
             Benutzername = benutzername,
             Anzeigename = anzeigename,
-            PasswortHash = Hash(passwort),
+            // Platzhalter-Hash — wird vom User per Setup-Link ueberschrieben.
+            // Random unguessable, damit niemand mit Leerpasswort durchkommt.
+            PasswortHash = Hash(Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")),
             Rolle = rolle,
-            IstAktiv = true,
-            ErstelltAm = DateTime.UtcNow
+            IstAktiv = false,
+            ErstelltAm = DateTime.UtcNow,
+            EinrichtungsToken = token,
+            EinrichtungsTokenAblaufUtc = DateTime.UtcNow.AddDays(7)
         };
         _db.Users.Add(u);
         await _db.SaveChangesAsync();
-        _log.LogInformation("Neuer Benutzer angelegt: {User} (Rolle={Rolle})", benutzername, rolle);
-        return Json(new { ok = true, id = u.Id });
+
+        var setupUrl = Url.Action("Einrichten", "Account", new { token }, Request.Scheme, Request.Host.Value);
+        _log.LogInformation("Neuer Benutzer angelegt: {User} (Rolle={Rolle}), Setup-Link generiert (gueltig bis {Ablauf:O})",
+            benutzername, rolle, u.EinrichtungsTokenAblaufUtc);
+        return Json(new
+        {
+            ok = true,
+            id = u.Id,
+            setupUrl,
+            ablaufUtc = u.EinrichtungsTokenAblaufUtc
+        });
+    }
+
+    public record RegenerateLinkRequest(int Id);
+
+    /// <summary>Erzeugt einen frischen Setup-Link fuer einen User mit ausstehender
+    /// Einrichtung. Bestehende Tokens werden invalidiert.</summary>
+    [HttpPost]
+    public async Task<IActionResult> RegenerateUserLink([FromBody] RegenerateLinkRequest req)
+    {
+        if (!User.IsInRole("Admin")) return Json(new { ok = false, error = "Nur Admins." });
+        if (req == null || req.Id <= 0) return Json(new { ok = false, error = "Ungueltige Anfrage." });
+
+        var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == req.Id);
+        if (u == null) return Json(new { ok = false, error = "Benutzer nicht gefunden." });
+
+        var token = GenerateUrlToken(32);
+        u.EinrichtungsToken = token;
+        u.EinrichtungsTokenAblaufUtc = DateTime.UtcNow.AddDays(7);
+        u.IstAktiv = false; // bis User Passwort setzt, gesperrt
+        await _db.SaveChangesAsync();
+
+        var setupUrl = Url.Action("Einrichten", "Account", new { token }, Request.Scheme, Request.Host.Value);
+        _log.LogInformation("Setup-Link erneut generiert fuer {User}", u.Benutzername);
+        return Json(new { ok = true, setupUrl, ablaufUtc = u.EinrichtungsTokenAblaufUtc });
+    }
+
+    private static string GenerateUrlToken(int byteLength)
+    {
+        var bytes = RandomNumberGenerator.GetBytes(byteLength);
+        return Convert.ToBase64String(bytes).Replace('+', '-').Replace('/', '_').TrimEnd('=');
+    }
+
+    public record UpdateOwnAccountRequest(string Benutzername, string Anzeigename, string? NeuesPasswort);
+
+    /// <summary>
+    /// Eigenes Admin-Konto bearbeiten — Benutzername, Anzeigename und optional
+    /// das Passwort. NeuesPasswort leer/null lassen → Passwort bleibt unveraendert.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> UpdateOwnAccount([FromBody] UpdateOwnAccountRequest req)
+    {
+        if (!User.IsInRole("Admin")) return Json(new { ok = false, error = "Nur Admins." });
+        if (req == null) return Json(new { ok = false, error = "Ungueltige Anfrage." });
+
+        var ownIdStr = User.FindFirst("UserId")?.Value;
+        if (!int.TryParse(ownIdStr, out var ownId) || ownId <= 0)
+            return Json(new { ok = false, error = "Eigene UserId nicht ermittelbar." });
+
+        var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == ownId);
+        if (u == null) return Json(new { ok = false, error = "Eigenes Konto nicht gefunden." });
+
+        var benutzername = (req.Benutzername ?? "").Trim();
+        var anzeigename = (req.Anzeigename ?? "").Trim();
+        if (string.IsNullOrEmpty(benutzername))
+            return Json(new { ok = false, error = "Benutzername ist Pflicht." });
+        if (benutzername.Length > 100)
+            return Json(new { ok = false, error = "Benutzername ist zu lang (max. 100)." });
+        if (string.IsNullOrEmpty(anzeigename))
+            return Json(new { ok = false, error = "Anzeigename ist Pflicht." });
+
+        // Username-Eindeutigkeit: nur pruefen, wenn er sich aendert
+        if (!string.Equals(benutzername, u.Benutzername, StringComparison.Ordinal))
+        {
+            var taken = await _db.Users.AnyAsync(x => x.Id != ownId && x.Benutzername == benutzername);
+            if (taken) return Json(new { ok = false, error = "Benutzername ist bereits vergeben." });
+        }
+
+        u.Benutzername = benutzername;
+        u.Anzeigename = anzeigename;
+
+        var passwortGeaendert = false;
+        if (!string.IsNullOrEmpty(req.NeuesPasswort))
+        {
+            if (req.NeuesPasswort.Length < 4 || req.NeuesPasswort.Length > 200)
+                return Json(new { ok = false, error = "Neues Passwort muss zwischen 4 und 200 Zeichen sein." });
+            u.PasswortHash = Hash(req.NeuesPasswort);
+            passwortGeaendert = true;
+        }
+
+        await _db.SaveChangesAsync();
+        _log.LogInformation("Admin-Konto aktualisiert: Id={Id}, Benutzername={User}, PasswortGeaendert={PwdChanged}",
+            u.Id, u.Benutzername, passwortGeaendert);
+
+        return Json(new
+        {
+            ok = true,
+            passwortGeaendert,
+            // Hinweis: bei geaendertem Passwort sollte sich der User neu anmelden,
+            // da der bestehende Cookie noch die alten Claims enthaelt.
+            reloginEmpfohlen = passwortGeaendert
+        });
     }
 
     public record DeleteUserRequest(int Id);

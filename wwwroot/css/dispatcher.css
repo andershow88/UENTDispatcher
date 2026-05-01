@@ -648,8 +648,68 @@ a:hover { color: var(--mc-petrol-dark); }
 }
 .login-logo { text-align: center; margin-bottom: 1.4rem; }
 .login-logo img { max-width: 180px; }
-.login-title { text-align: center; font-size: 1.3rem; font-weight: 700; color: var(--mc-petrol); margin-bottom: .3rem; }
+.login-logo-xl { margin-bottom: 1.8rem; }
+.login-logo-xl img { max-width: 360px; }
+.login-title {
+    text-align: center;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--mc-petrol);
+    margin-bottom: 1.6rem;
+    letter-spacing: -.01em;
+}
 .login-subtitle { text-align: center; font-size: .85rem; color: var(--mc-text-muted); margin-bottom: 1.6rem; }
+
+/* Modus-Toggle in der Ecke (Login-Page) */
+.login-mode-corner {
+    position: fixed;
+    bottom: 1.2rem;
+    right: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .55rem .9rem;
+    background: rgba(0,0,0,.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--mc-radius-pill);
+    color: rgba(255,255,255,.78);
+    font-size: .8rem;
+    font-weight: 500;
+    user-select: none;
+    z-index: 10;
+}
+.login-mode-toggle {
+    width: 40px; height: 22px;
+    background: rgba(255,255,255,.25);
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    transition: background .25s;
+    flex-shrink: 0;
+}
+.login-mode-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left .25s;
+    box-shadow: 0 2px 4px rgba(0,0,0,.3);
+}
+.login-mode-toggle.admin {
+    background: var(--mc-gold);
+}
+.login-mode-toggle.admin::after { left: 20px; }
+
+.login-mode-label-user { color: #fff; opacity: 1; transition: opacity .2s; }
+.login-mode-label-admin { opacity: .55; transition: opacity .2s, color .2s; }
+.login-mode-corner.admin .login-mode-label-user { opacity: .55; }
+.login-mode-corner.admin .login-mode-label-admin { opacity: 1; color: var(--mc-gold-light); }
 .login-error {
     background: var(--mc-danger-bg); color: var(--mc-danger);
     padding: .65rem .9rem; border-radius: var(--mc-radius-sm);

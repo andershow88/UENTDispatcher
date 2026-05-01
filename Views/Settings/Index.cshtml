@@ -3,6 +3,7 @@
     ViewData["Title"] = "Einstellungen";
     var users = ViewBag.Users as List<UENTDispatcher.Models.AppUser> ?? new();
     var ownIdClaim = User.FindFirst("UserId")?.Value ?? "";
+    var ownUser = users.FirstOrDefault(u => u.Id.ToString() == ownIdClaim);
 }
 
 <div class="app-page-header">
@@ -69,6 +70,42 @@
 
 </div>
 
+@if (ownUser != null)
+{
+    <div class="mc-card" style="margin-top: 1.4rem;">
+        <div class="mc-card-header">
+            <div class="mc-card-title"><i class="bi bi-person-badge"></i> Eigenes Admin-Konto</div>
+        </div>
+        <div class="mc-card-body">
+            <div class="login-error" id="ownError" style="display:none;"></div>
+            <div class="login-error" id="ownSuccess" style="display:none; background:rgba(16,185,129,.15); color:var(--mc-success); border-color:rgba(16,185,129,.3);"></div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                <div class="form-row">
+                    <label class="form-label" for="ownBenutzername">Benutzername</label>
+                    <input type="text" id="ownBenutzername" class="form-control" value="@ownUser.Benutzername" autocomplete="username" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="ownAnzeigename">Anzeigename</label>
+                    <input type="text" id="ownAnzeigename" class="form-control" value="@ownUser.Anzeigename" />
+                </div>
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="ownPasswort">Neues Passwort <span class="muted" style="font-weight:400;">— leer lassen, wenn unverändert</span></label>
+                <input type="password" id="ownPasswort" class="form-control" autocomplete="new-password" placeholder="Mindestens 4 Zeichen" style="max-width: 320px;" />
+            </div>
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <button type="button" class="btn-mc btn-mc-primary" id="ownSaveBtn" onclick="saveOwnAccount()">
+                    <i class="bi bi-check2"></i> Speichern
+                </button>
+                <span class="muted" style="font-size:.82rem;">
+                    Bei Passwortänderung musst du dich danach erneut anmelden.
+                </span>
+            </div>
+        </div>
+    </div>
+}
+
 <div class="mc-card" style="margin-top: 1.4rem;">
     <div class="mc-card-header">
         <div class="mc-card-title"><i class="bi bi-people-fill"></i> Benutzerverwaltung (@users.Count)</div>
@@ -90,6 +127,9 @@
                 @foreach (var u in users)
                 {
                     var istEigen = u.Id.ToString() == ownIdClaim;
+                    var pending = !string.IsNullOrEmpty(u.EinrichtungsToken);
+                    var expired = pending && u.EinrichtungsTokenAblaufUtc != null
+                                  && u.EinrichtungsTokenAblaufUtc <= DateTime.UtcNow;
                     <tr>
                         <td style="padding:.7rem .8rem; font-weight:600; color:var(--mc-text-dark);">
                             @u.Benutzername
@@ -98,7 +138,22 @@
                                 <span class="muted" style="font-size:.76rem; font-weight:400; margin-left:.4rem;">(du)</span>
                             }
                         </td>
-                        <td style="padding:.7rem .8rem;">@u.Anzeigename</td>
+                        <td style="padding:.7rem .8rem;">
+                            @u.Anzeigename
+                            @if (pending)
+                            {
+                                <div style="margin-top:.2rem;">
+                                    @if (expired)
+                                    {
+                                        <span class="timeline-tag warning"><i class="bi bi-hourglass-bottom"></i> Setup-Link abgelaufen</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="timeline-tag warning"><i class="bi bi-hourglass-split"></i> Einrichtung ausstehend</span>
+                                    }
+                                </div>
+                            }
+                        </td>
                         <td style="padding:.7rem .8rem;">
                             @if (u.Rolle == "Admin")
                             {
@@ -110,6 +165,13 @@
                             }
                         </td>
                         <td class="emp-actions-cell">
+                            @if (pending)
+                            {
+                                <button type="button" class="btn-mc btn-mc-ghost emp-action-btn"
+                                        onclick="regenerateLink(@u.Id, '@u.Benutzername')" title="Neuen Setup-Link erzeugen">
+                                    <i class="bi bi-arrow-clockwise"></i> Link
+                                </button>
+                            }
                             @if (istEigen)
                             {
                                 <span class="muted" style="font-size:.78rem;">eigenes Konto</span>
@@ -118,7 +180,7 @@
                             {
                                 <button type="button" class="btn-mc btn-mc-danger emp-action-btn"
                                         onclick="onDeleteUser(@u.Id, '@u.Benutzername')">
-                                    <i class="bi bi-trash"></i> Löschen
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             }
                         </td>
@@ -139,7 +201,7 @@
             <div class="icon-circle"><i class="bi bi-person-plus"></i></div>
             <div>
                 <div class="modal-title">Neuen Benutzer anlegen</div>
-                <div class="modal-subtitle">Zugang für Glücksrad und Verlauf einrichten</div>
+                <div class="modal-subtitle">Du erhältst danach einen Setup-Link, den du an die Person weiterleitest.</div>
             </div>
         </div>
         <div class="modal-body">
@@ -151,10 +213,6 @@
             <div class="form-row">
                 <label class="form-label" for="newAnzeigename">Anzeigename</label>
                 <input type="text" id="newAnzeigename" class="form-control" autocomplete="off" />
-            </div>
-            <div class="form-row">
-                <label class="form-label" for="newPasswort">Passwort (mind. 4 Zeichen)</label>
-                <input type="password" id="newPasswort" class="form-control" autocomplete="new-password" />
             </div>
             <div class="form-row">
                 <label class="form-label">Rolle</label>
@@ -169,11 +227,48 @@
                     </label>
                 </div>
             </div>
+            <div style="font-size:.82rem; color:var(--mc-text-muted); margin-top:.4rem;">
+                <i class="bi bi-info-circle"></i> Das Passwort vergibt der Benutzer selbst über den generierten Link.
+                Der Link ist 7 Tage gültig.
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-mc btn-mc-ghost" onclick="closeUserModal()">Abbrechen</button>
             <button type="button" class="btn-mc btn-mc-primary" id="userCreateBtn" onclick="createUser()">
-                <i class="bi bi-check2"></i> Anlegen
+                <i class="bi bi-link-45deg"></i> Anlegen + Link erzeugen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ────────── Setup-Link-Modal (zeigt den frisch erzeugten Link) ────────── -->
+<div class="modal-overlay" id="linkModal" onclick="if(event.target===this) closeLinkModal();">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div class="icon-circle"><i class="bi bi-link-45deg"></i></div>
+            <div>
+                <div class="modal-title">Setup-Link bereit</div>
+                <div class="modal-subtitle" id="linkSubtitle">Leite den Link an den neuen Benutzer weiter</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <p style="margin-top:0; font-size:.9rem;">
+                Der Benutzer öffnet diesen Link, vergibt sein eigenes Passwort und ist danach angemeldet.
+            </p>
+            <div style="display:flex; gap:.5rem; align-items:stretch;">
+                <input type="text" id="linkUrl" class="form-control" readonly style="font-family:monospace; font-size:.82rem;" />
+                <button type="button" class="btn-mc btn-mc-primary" id="copyLinkBtn" onclick="copyLink()">
+                    <i class="bi bi-clipboard"></i> Kopieren
+                </button>
+            </div>
+            <div id="linkExpire" style="font-size:.78rem; color:var(--mc-text-muted); margin-top:.6rem;"></div>
+            <div id="copyStatus" style="font-size:.82rem; color:var(--mc-success); margin-top:.4rem; display:none;">
+                <i class="bi bi-check2-circle"></i> Link kopiert.
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:center;">
+            <button type="button" class="btn-mc btn-mc-primary btn-mc-lg" onclick="closeLinkModal()">
+                <i class="bi bi-check2"></i> Fertig
             </button>
         </div>
     </div>
@@ -246,11 +341,66 @@
         }
     }
 
+    // ── Eigenes Admin-Konto bearbeiten ──────────────────────────────
+    async function saveOwnAccount() {
+        var benutzername = document.getElementById('ownBenutzername').value.trim();
+        var anzeigename = document.getElementById('ownAnzeigename').value.trim();
+        var neuesPasswort = document.getElementById('ownPasswort').value;
+        var err = document.getElementById('ownError');
+        var ok = document.getElementById('ownSuccess');
+        var btn = document.getElementById('ownSaveBtn');
+        err.style.display = 'none';
+        ok.style.display = 'none';
+
+        if (!benutzername || !anzeigename) {
+            err.textContent = 'Benutzername und Anzeigename sind Pflicht.';
+            err.style.display = 'block';
+            return;
+        }
+        if (neuesPasswort && neuesPasswort.length < 4) {
+            err.textContent = 'Passwort muss mindestens 4 Zeichen lang sein.';
+            err.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Speichere…';
+        try {
+            var res = await fetch('/Settings/UpdateOwnAccount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    benutzername: benutzername,
+                    anzeigename: anzeigename,
+                    neuesPasswort: neuesPasswort || null
+                })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                err.textContent = data.error || 'Speichern fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2"></i> Speichern';
+                return;
+            }
+            ok.innerHTML = '<i class="bi bi-check2-circle"></i> Gespeichert.' +
+                (data.reloginEmpfohlen ? ' Bitte einmal abmelden und erneut anmelden.' : '');
+            ok.style.display = 'block';
+            document.getElementById('ownPasswort').value = '';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2"></i> Speichern';
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2"></i> Speichern';
+        }
+    }
+
     // ── Benutzerverwaltung ────────────────────────────────────────────
     function openUserCreate() {
         document.getElementById('newBenutzername').value = '';
         document.getElementById('newAnzeigename').value = '';
-        document.getElementById('newPasswort').value = '';
         document.querySelector('input[name="newRolle"][value="User"]').checked = true;
         document.getElementById('userError').style.display = 'none';
         document.getElementById('userModal').classList.add('open');
@@ -263,19 +413,13 @@
     async function createUser() {
         var benutzername = document.getElementById('newBenutzername').value.trim();
         var anzeigename = document.getElementById('newAnzeigename').value.trim();
-        var passwort = document.getElementById('newPasswort').value;
         var rolle = document.querySelector('input[name="newRolle"]:checked').value;
         var err = document.getElementById('userError');
         var btn = document.getElementById('userCreateBtn');
         err.style.display = 'none';
 
-        if (!benutzername || !anzeigename || !passwort) {
-            err.textContent = 'Bitte alle Felder ausfüllen.';
-            err.style.display = 'block';
-            return;
-        }
-        if (passwort.length < 4) {
-            err.textContent = 'Passwort muss mindestens 4 Zeichen lang sein.';
+        if (!benutzername || !anzeigename) {
+            err.textContent = 'Bitte Benutzername und Anzeigename angeben.';
             err.style.display = 'block';
             return;
         }
@@ -286,23 +430,73 @@
             var res = await fetch('/Settings/CreateUser', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ benutzername: benutzername, anzeigename: anzeigename, passwort: passwort, rolle: rolle })
+                body: JSON.stringify({ benutzername: benutzername, anzeigename: anzeigename, rolle: rolle })
             });
             var data = await res.json();
             if (!data.ok) {
                 err.textContent = data.error || 'Anlegen fehlgeschlagen.';
                 err.style.display = 'block';
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check2"></i> Anlegen';
+                btn.innerHTML = '<i class="bi bi-link-45deg"></i> Anlegen + Link erzeugen';
                 return;
             }
-            location.reload();
+            // Modal schliessen und Link-Modal oeffnen
+            closeUserModal();
+            showLinkModal(data.setupUrl, data.ablaufUtc, benutzername);
         } catch (e) {
             err.textContent = 'Verbindungsfehler: ' + e.message;
             err.style.display = 'block';
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check2"></i> Anlegen';
+            btn.innerHTML = '<i class="bi bi-link-45deg"></i> Anlegen + Link erzeugen';
         }
+    }
+
+    // ── Setup-Link-Modal: zeigt den frisch erzeugten Link mit Copy-Button ─
+    function showLinkModal(url, ablaufUtc, benutzername) {
+        document.getElementById('linkUrl').value = url;
+        document.getElementById('linkSubtitle').textContent =
+            'Leite den Link an "' + benutzername + '" weiter';
+        document.getElementById('copyStatus').style.display = 'none';
+        if (ablaufUtc) {
+            var d = new Date(ablaufUtc);
+            var fmt = d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('linkExpire').innerHTML = '<i class="bi bi-clock"></i> Gültig bis ' + fmt + ' Uhr';
+        } else {
+            document.getElementById('linkExpire').textContent = '';
+        }
+        document.getElementById('linkModal').classList.add('open');
+    }
+    function closeLinkModal() {
+        document.getElementById('linkModal').classList.remove('open');
+        location.reload(); // Liste mit "Setup ausstehend"-Badge aktualisieren
+    }
+    async function copyLink() {
+        var input = document.getElementById('linkUrl');
+        var status = document.getElementById('copyStatus');
+        try {
+            await navigator.clipboard.writeText(input.value);
+            status.style.display = 'block';
+            setTimeout(function () { status.style.display = 'none'; }, 2500);
+        } catch (e) {
+            // Fallback: select + execCommand
+            input.select();
+            try { document.execCommand('copy'); status.style.display = 'block'; setTimeout(function(){status.style.display='none';}, 2500); }
+            catch (e2) { alert('Konnte Link nicht kopieren — bitte manuell markieren.'); }
+        }
+    }
+
+    async function regenerateLink(id, benutzername) {
+        if (!confirm('Neuen Setup-Link für "' + benutzername + '" erzeugen? Der alte Link wird ungültig.')) return;
+        try {
+            var res = await fetch('/Settings/RegenerateUserLink', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            var data = await res.json();
+            if (!data.ok) { alert(data.error || 'Fehlgeschlagen.'); return; }
+            showLinkModal(data.setupUrl, data.ablaufUtc, benutzername);
+        } catch (e) { alert('Verbindungsfehler: ' + e.message); }
     }
 
     var pendingUserDeleteId = null;

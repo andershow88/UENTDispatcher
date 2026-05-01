@@ -75,6 +75,11 @@ public class AppUser
     public string Rolle { get; set; } = "User"; // "Admin" | "User"
     public bool IstAktiv { get; set; } = true;
     public DateTime ErstelltAm { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Einmal-Token fuer Passwort-Einrichtung. Null = Konto bereits eingerichtet.</summary>
+    public string? EinrichtungsToken { get; set; }
+    /// <summary>Ablauf des Einrichtungs-Tokens. Null = Konto bereits eingerichtet.</summary>
+    public DateTime? EinrichtungsTokenAblaufUtc { get; set; }
 }
 
 public class Employee

@@ -1,0 +1,135 @@
+@{
+    Layout = null;
+    var benutzername = ViewBag.Benutzername as string ?? "";
+    var anzeigename = ViewBag.Anzeigename as string ?? "";
+    var rolle = ViewBag.Rolle as string ?? "User";
+    var token = ViewBag.Token as string ?? "";
+    var fehler = ViewBag.Fehler as string;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Konto einrichten – UENT Dispatcher</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/dispatcher.css" asp-append-version="true" />
+    <script>
+        (function () {
+            try {
+                var stored = localStorage.getItem('uent-theme');
+                var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body>
+
+<div class="login-stage">
+    <div class="login-card">
+        <div class="login-logo">
+            <img src="~/images/merkur-logo.svg" alt="Merkur Privatbank" />
+        </div>
+
+        @if (fehler != null)
+        {
+            <div class="login-title">Link nicht gültig</div>
+            <div class="login-subtitle">&nbsp;</div>
+            <div class="login-error" style="display:block;">
+                @fehler
+            </div>
+            <div class="login-hint">
+                <a href="/Account/Login">Zur Anmeldung</a>
+            </div>
+        }
+        else
+        {
+            <div class="login-title">Konto einrichten</div>
+            <div class="login-subtitle">
+                Willkommen, <strong>@anzeigename</strong> — leg dein Passwort fest, um dich anzumelden.
+            </div>
+
+            <div class="login-error" id="errorBox" style="display:none;"></div>
+            <div class="login-error" id="successBox" style="display:none; background:rgba(16,185,129,.15); color:var(--mc-success); border-color:rgba(16,185,129,.3);">
+                <i class="bi bi-check2-circle"></i> Passwort gesetzt. Du kannst dich jetzt anmelden.
+                <a href="/Account/Login" style="display:inline-block; margin-top:.5rem; font-weight:600;">Zur Anmeldung →</a>
+            </div>
+
+            <form id="setupForm" autocomplete="off">
+                <div class="form-row">
+                    <label class="form-label">Benutzername</label>
+                    <input type="text" class="form-control" value="@benutzername" disabled style="background: var(--mc-bg);" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">Rolle</label>
+                    <input type="text" class="form-control" value="@rolle" disabled style="background: var(--mc-bg);" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="passwort">Neues Passwort (mind. 4 Zeichen)</label>
+                    <input type="password" id="passwort" class="form-control" autocomplete="new-password" required />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="bestaetigung">Passwort bestätigen</label>
+                    <input type="password" id="bestaetigung" class="form-control" autocomplete="new-password" required />
+                </div>
+                <button type="submit" class="btn-mc btn-mc-primary btn-mc-block btn-mc-lg">
+                    <i class="bi bi-check2-circle"></i> Passwort speichern
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (fehler == null)
+{
+    <script>
+        document.getElementById('setupForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var err = document.getElementById('errorBox');
+            var ok = document.getElementById('successBox');
+            err.style.display = 'none';
+            var passwort = document.getElementById('passwort').value;
+            var bestaetigung = document.getElementById('bestaetigung').value;
+            if (!passwort || passwort.length < 4) {
+                err.textContent = 'Passwort muss mindestens 4 Zeichen lang sein.';
+                err.style.display = 'block';
+                return;
+            }
+            if (passwort !== bestaetigung) {
+                err.textContent = 'Die beiden Passwörter stimmen nicht überein.';
+                err.style.display = 'block';
+                return;
+            }
+            try {
+                var res = await fetch('/Account/EinrichtenSpeichern', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(token)),
+                        passwort: passwort,
+                        bestaetigung: bestaetigung
+                    })
+                });
+                var data = await res.json();
+                if (data.ok) {
+                    document.getElementById('setupForm').style.display = 'none';
+                    ok.style.display = 'block';
+                } else {
+                    err.textContent = data.error || 'Speichern fehlgeschlagen.';
+                    err.style.display = 'block';
+                }
+            } catch (e) {
+                err.textContent = 'Verbindungsfehler: ' + e.message;
+                err.style.display = 'block';
+            }
+        });
+    </script>
+}
+
+</body>
+</html>

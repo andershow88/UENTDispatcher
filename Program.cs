@@ -178,13 +178,17 @@ static async Task TryEnsureColumnsAsync(AppDbContext db, ILogger log)
     {
         "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoBytes\" bytea NULL",
         "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoMimeType\" varchar(50) NULL",
-        "CREATE TABLE IF NOT EXISTS \"AppSettings\" (\"Id\" int PRIMARY KEY, \"SperreTage\" int NOT NULL DEFAULT 21, \"ZuletztGeaendertUtc\" timestamp without time zone NOT NULL DEFAULT NOW())"
+        "CREATE TABLE IF NOT EXISTS \"AppSettings\" (\"Id\" int PRIMARY KEY, \"SperreTage\" int NOT NULL DEFAULT 21, \"ZuletztGeaendertUtc\" timestamp without time zone NOT NULL DEFAULT NOW())",
+        "ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"EinrichtungsToken\" text NULL",
+        "ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"EinrichtungsTokenAblaufUtc\" timestamp without time zone NULL"
     };
     var sqliteStmts = new[]
     {
         "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoBytes\" BLOB NULL",
         "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoMimeType\" TEXT NULL",
-        "CREATE TABLE IF NOT EXISTS \"AppSettings\" (\"Id\" INTEGER PRIMARY KEY, \"SperreTage\" INTEGER NOT NULL DEFAULT 21, \"ZuletztGeaendertUtc\" TEXT NOT NULL DEFAULT (datetime('now')))"
+        "CREATE TABLE IF NOT EXISTS \"AppSettings\" (\"Id\" INTEGER PRIMARY KEY, \"SperreTage\" INTEGER NOT NULL DEFAULT 21, \"ZuletztGeaendertUtc\" TEXT NOT NULL DEFAULT (datetime('now')))",
+        "ALTER TABLE \"Users\" ADD COLUMN \"EinrichtungsToken\" TEXT NULL",
+        "ALTER TABLE \"Users\" ADD COLUMN \"EinrichtungsTokenAblaufUtc\" TEXT NULL"
     };
 
     foreach (var sql in isPg ? pgStmts : sqliteStmts)
