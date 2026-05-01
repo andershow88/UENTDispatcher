@@ -708,24 +708,28 @@ a:hover { color: var(--mc-petrol-dark); }
     width: 100%;
 }
 
-/* Foto-Container im Winner-Modal — wird ueber 5s animiert (Spin + Scale-Up) */
+/* Foto-Container im Winner-Modal — Endposition des fliegenden Fotos.
+   Doppelt so gross wie die Wheel-Disc (180px), damit es als Hero wirkt.
+   Startet unsichtbar (opacity 0) und wird per JS eingeblendet, sobald
+   das fliegende Foto angekommen ist. */
 .winner-photo-container {
     position: relative;
-    width: 130px; height: 130px;
+    width: 180px; height: 180px;
     border-radius: 50%;
     overflow: hidden;
-    border: 4px solid rgba(255,255,255,.95);
+    border: 5px solid rgba(255,255,255,.95);
     box-shadow:
-        0 10px 28px rgba(0,0,0,.4),
-        0 0 0 6px rgba(200,169,110,.18);
+        0 14px 36px rgba(0,0,0,.42),
+        0 0 0 8px rgba(200,169,110,.20);
     background: linear-gradient(135deg, var(--mc-gold), var(--mc-petrol));
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transform-origin: 50% 50%;
-    will-change: transform;
+    opacity: 0;                       /* Fly-Element uebernimmt den Reveal */
+    transition: opacity .35s ease;
 }
+.winner-photo-container.visible { opacity: 1; }
 .winner-photo-container img {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
@@ -738,35 +742,54 @@ a:hover { color: var(--mc-petrol-dark); }
     display: flex; align-items: center; justify-content: center;
     color: #fff;
     font-weight: 800;
-    font-size: 2.8rem;
+    font-size: 3.6rem;
     letter-spacing: .04em;
-    text-shadow: 0 2px 8px rgba(0,0,0,.3);
-}
-.winner-photo-sparkle {
-    position: absolute;
-    top: -4px; right: -8px;
-    font-size: 1.6rem;
-    line-height: 1;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
-    animation: sparklePop .6s cubic-bezier(.18,.85,.25,1) 4.5s both;
-    transform: scale(0);
-}
-@keyframes sparklePop {
-    0%   { transform: scale(0) rotate(-30deg); }
-    60%  { transform: scale(1.2) rotate(15deg); }
-    100% { transform: scale(1) rotate(0deg); }
+    text-shadow: 0 2px 10px rgba(0,0,0,.35);
 }
 
-/* 5-Sekunden-Reveal: Foto poppt klein in den Modal hinein, dreht 3 Volldrehungen
-   und wird gross. Ease-out → schneller Start, sanftes Auslaufen, finaler Stand
-   bleibt erhalten (forwards). */
-@keyframes winnerPhotoReveal {
-    0%   { transform: scale(0.05) rotate(0deg); opacity: 0; }
-    8%   { opacity: 1; }
-    100% { transform: scale(1) rotate(1080deg); opacity: 1; }
+/* Modal-Card-Fade fuer das Winner-Modal: langsam aufsteigend (~2.8s)
+   waehrend das Foto vom Drehrad ins Modal fliegt. Reine Opacity, damit
+   die Photo-Container-Position konstant bleibt — sonst waere das
+   Flugziel waehrend der Animation ein Moving-Target. */
+.winner-card {
+    animation: winnerCardFadeIn 2.8s cubic-bezier(.3, .65, .25, 1) both;
 }
-.winner-photo-container.revealing {
-    animation: winnerPhotoReveal 5s cubic-bezier(.18, .65, .25, 1) forwards;
+@keyframes winnerCardFadeIn {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* Fliegendes Foto: separates DOM-Element, das vom Drehrad zum Modal
+   fliegt. Position+Groesse werden via JS inline gesetzt und transitioniert. */
+.winner-fly {
+    position: fixed;
+    z-index: 1500;                    /* ueber Modal-Overlay (1100) */
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid rgba(255,255,255,.95);
+    box-shadow:
+        0 14px 36px rgba(0,0,0,.5),
+        0 0 0 6px rgba(200,169,110,.22);
+    background: linear-gradient(135deg, var(--mc-gold), var(--mc-petrol));
+    transform-origin: 50% 50%;
+    pointer-events: none;
+    will-change: transform, top, left, width, height;
+}
+.winner-fly img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+.winner-fly-initials {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: .32em;                 /* skaliert mit fly.style.fontSize */
+    letter-spacing: .04em;
+    text-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
 
 .winner-name {

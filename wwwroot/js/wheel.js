@@ -23,7 +23,10 @@
         antiforgeryToken: null,
         sperreTage: 21,         // wird via init() gesetzt
         spinTimeoutId: null,    // setTimeout-ID des laufenden Spins (zum Cancellen)
-        operationToken: 0       // monoton steigender Token: alte async-Callbacks erkennen
+        operationToken: 0,      // monoton steigender Token: alte async-Callbacks erkennen
+        activeFlyEl: null,      // aktuell fliegendes Foto-Element (wird bei Cancel entfernt)
+        flyPhaseBTimer: null,
+        flyPhaseCTimer: null
     };
 
     // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
@@ -74,6 +77,18 @@
         window.addEventListener('pagehide', function () { cancelSpin(); });
     }
 
+    // Foto-Flug aufraeumen — Timer canceln, fliegendes Element entfernen,
+    // Modal-Photo-Container ausblenden. Wird von cancelSpin, Confirm- und
+    // Respin-Pfaden gleichermassen aufgerufen.
+    function cleanupFly() {
+        if (state.flyPhaseBTimer) { clearTimeout(state.flyPhaseBTimer); state.flyPhaseBTimer = null; }
+        if (state.flyPhaseCTimer) { clearTimeout(state.flyPhaseCTimer); state.flyPhaseCTimer = null; }
+        if (state.activeFlyEl && state.activeFlyEl.parentNode) state.activeFlyEl.remove();
+        state.activeFlyEl = null;
+        var modalPhotoContainer = document.getElementById('winnerPhotoContainer');
+        if (modalPhotoContainer) modalPhotoContainer.classList.remove('visible');
+    }
+
     // ── Cancel-Spin: harte Reset-Funktion fuer alle Fehler-/Abbruch-Situationen
     function cancelSpin() {
         // Operation-Token erhoehen → laufende async-Callbacks aus alten Operationen
@@ -84,6 +99,7 @@
             clearTimeout(state.spinTimeoutId);
             state.spinTimeoutId = null;
         }
+        cleanupFly();
         state.spinning = false;
         state.winner = null;
 
@@ -639,13 +655,45 @@
         document.getElementById('winnerName').textContent = firstName;
         document.getElementById('winnerWitty').textContent = pickWittyLine(winner);
 
-        // ── Foto-Reveal vorbereiten ─────────────────────────────────────
-        // Wenn ein Foto im Cache ist, in das Reveal-Element setzen,
-        // sonst Initialen-Fallback. Das Foto wurde waehrend des Spins
-        // (triggerPhotoLoads) bereits geladen.
+        // Modal-Photo-Container (das Endziel des Flugs) mit Inhalt befuellen,
+        // aber unsichtbar lassen — wird sichtbar, wenn das fliegende Foto
+        // ankommt.
+        setupWinnerPhotoContent(winner);
+        var photoContainer = document.getElementById('winnerPhotoContainer');
+        photoContainer.classList.remove('visible');
+
+        // Lock-Hint, Error, Buttons in sauberem Zustand
+        var lockHint = document.getElementById('winnerLockHint');
+        if (winner.gesperrt) {
+            lockHint.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
+                winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. ' +
+                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische ' + state.sperreTage + ' Tage gesetzt.';
+            lockHint.style.display = 'block';
+        } else {
+            lockHint.style.display = 'none';
+        }
+        var err = document.getElementById('winnerError');
+        if (err) err.style.display = 'none';
+        var confirmBtn = document.getElementById('winnerConfirmBtn');
+        var respinBtn = document.getElementById('winnerRespinBtn');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+        respinBtn.disabled = false;
+
+        // Foto-Flug aus dem Drehrad ins Modal — orchestriert Phase A
+        // (Spin in place auf dem Rad), oeffnet zur Halbzeit das Modal und
+        // laesst das Foto in seine Endposition fliegen.
+        flyWinnerPhotoFromWheel(winner);
+
+        confetti();
+    }
+
+    // Setzt Foto oder Initialen im Modal-Photo-Container (Endziel).
+    function setupWinnerPhotoContent(winner) {
+        var firstName = (winner.anzeigename || '').split(' ')[0] || winner.anzeigename || '';
+        var initials = (firstName.substring(0, 2) || '?').toUpperCase();
         var photoEl = document.getElementById('winnerPhotoImg');
         var initEl = document.getElementById('winnerPhotoInitials');
-        var initials = (firstName.substring(0, 2) || '?').toUpperCase();
         var cached = photoCache[winner.id];
         if (cached && cached.naturalWidth > 0) {
             photoEl.src = cached.src;
@@ -657,41 +705,124 @@
             initEl.textContent = initials;
             initEl.style.display = 'flex';
         }
+    }
 
-        var lockHint = document.getElementById('winnerLockHint');
-        if (winner.gesperrt) {
-            lockHint.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
-                winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. ' +
-                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische ' + state.sperreTage + ' Tage gesetzt.';
-            lockHint.style.display = 'block';
+    // Erzeugt das fliegende Foto-Element (oder Initialen-Disc) als
+    // separates DOM-Node, positioniert auf dem Bildschirm.
+    function createFlyElement(winner, centerX, centerY, size) {
+        var fly = document.createElement('div');
+        fly.className = 'winner-fly';
+        fly.style.left = (centerX - size / 2) + 'px';
+        fly.style.top = (centerY - size / 2) + 'px';
+        fly.style.width = size + 'px';
+        fly.style.height = size + 'px';
+        fly.style.fontSize = size + 'px'; // Initialen skalieren mit em
+
+        var firstName = (winner.anzeigename || '').split(' ')[0];
+        var initials = (firstName.substring(0, 2) || '?').toUpperCase();
+        var cached = photoCache[winner.id];
+        if (cached && cached.naturalWidth > 0) {
+            var img = document.createElement('img');
+            img.src = cached.src;
+            img.alt = '';
+            fly.appendChild(img);
         } else {
-            lockHint.style.display = 'none';
+            var span = document.createElement('span');
+            span.className = 'winner-fly-initials';
+            span.textContent = initials;
+            fly.appendChild(span);
+        }
+        return fly;
+    }
+
+    // Orchestriert den Foto-Flug. Phase A (1.5s): in-place-Spin auf dem
+    // Rad. Phase B (2.5s): Modal oeffnet sich, Foto fliegt zur Modal-
+    // Position und waechst auf doppelte Groesse. Phase C: Modal-Photo-
+    // Container wird sichtbar, fliegendes Element entfernt.
+    function flyWinnerPhotoFromWheel(winner) {
+        var canvas = document.getElementById('wheelCanvas');
+        var photoContainer = document.getElementById('winnerPhotoContainer');
+        var modal = document.getElementById('winnerModal');
+        if (!canvas || !photoContainer || !modal) {
+            // Fallback: einfaches Modal-Open
+            if (modal) modal.classList.add('open');
+            if (photoContainer) photoContainer.classList.add('visible');
+            return;
         }
 
-        var err = document.getElementById('winnerError');
-        if (err) err.style.display = 'none';
+        // 1. Wheel-Photo-Position auf dem Bildschirm berechnen.
+        //    canvas.clientWidth ist die unrotierte CSS-Groesse (Geometrie),
+        //    getBoundingClientRect-Mitte ist die Bildschirmposition (Rotation
+        //    veraendert das Center nicht, da Rotation um Center erfolgt).
+        var canvasW = canvas.clientWidth;
+        var radius = canvasW / 2 - 6;
+        var sliceCount = Math.max(state.eligible.length, 1);
+        var sliceAngle = (Math.PI * 2) / sliceCount;
+        var photoR = radius * 0.62;
+        var chordHalf = photoR * Math.sin(sliceAngle / 2);
+        var photoSize = Math.max(24, Math.min(radius * 0.32, chordHalf * 1.8));
+        var canvasRect = canvas.getBoundingClientRect();
+        var canvasCenterX = canvasRect.left + canvasRect.width / 2;
+        var canvasCenterY = canvasRect.top + canvasRect.height / 2;
+        var startCX = canvasCenterX;
+        var startCY = canvasCenterY - photoR; // Pointer ist oben = 12 Uhr
 
-        var confirmBtn = document.getElementById('winnerConfirmBtn');
-        var respinBtn = document.getElementById('winnerRespinBtn');
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
-        respinBtn.disabled = false;
+        // 2. Fliegendes Element erzeugen und auf den Wheel-Photo-Punkt setzen
+        var fly = createFlyElement(winner, startCX, startCY, photoSize);
+        document.body.appendChild(fly);
 
-        document.getElementById('winnerModal').classList.add('open');
+        // Speichern, damit cancelSpin/erneutes Drehen es entfernen kann
+        if (state.activeFlyEl && state.activeFlyEl.parentNode) state.activeFlyEl.remove();
+        state.activeFlyEl = fly;
 
-        // 5-Sekunden-Reveal: Foto poppt rein, dreht 3 Volldrehungen, waechst
-        // bis zur finalen Groesse. Klasse erst entfernen + Reflow erzwingen,
-        // damit die Animation auch beim zweiten Aufruf (Erneut drehen) frisch
-        // startet und nicht im Endzustand stehen bleibt.
-        var container = document.getElementById('winnerPhotoContainer');
-        if (container) {
-            container.classList.remove('revealing');
-            void container.offsetWidth;
-            container.classList.add('revealing');
-        }
+        // 3. Phase A: in-place-Spin auf dem Rad (1.5s)
+        requestAnimationFrame(function () {
+            fly.style.transition = 'transform 1.5s cubic-bezier(.2, .8, .25, 1)';
+            fly.style.transform = 'rotate(720deg)';
+        });
 
-        // Konfetti zur Feier — dezente Celebration zusaetzlich zur Foto-Reveal
-        confetti();
+        // 4. Phase B nach 1.5s: Modal oeffnen, Endposition messen,
+        //    Foto fliegt + waechst (2.5s)
+        var phaseB = setTimeout(function () {
+            if (state.activeFlyEl !== fly) return; // wurde bereits gecanceled
+            modal.classList.add('open');
+            requestAnimationFrame(function () {
+                if (state.activeFlyEl !== fly) return;
+                var endRect = photoContainer.getBoundingClientRect();
+                var endCX = endRect.left + endRect.width / 2;
+                var endCY = endRect.top + endRect.height / 2;
+                var endSize = endRect.width || 180;
+
+                fly.style.transition =
+                    'top 2.5s cubic-bezier(.18,.7,.25,1), ' +
+                    'left 2.5s cubic-bezier(.18,.7,.25,1), ' +
+                    'width 2.5s cubic-bezier(.18,.7,.25,1), ' +
+                    'height 2.5s cubic-bezier(.18,.7,.25,1), ' +
+                    'font-size 2.5s cubic-bezier(.18,.7,.25,1), ' +
+                    'transform 2.5s cubic-bezier(.18,.7,.25,1)';
+                fly.style.left = (endCX - endSize / 2) + 'px';
+                fly.style.top = (endCY - endSize / 2) + 'px';
+                fly.style.width = endSize + 'px';
+                fly.style.height = endSize + 'px';
+                fly.style.fontSize = endSize + 'px';
+                fly.style.transform = 'rotate(1800deg)';
+            });
+        }, 1500);
+
+        // 5. Phase C nach insgesamt 4s: Modal-Photo-Container einblenden,
+        //    fliegendes Element kurz darauf entfernen (sanfter Wechsel).
+        var phaseC = setTimeout(function () {
+            if (state.activeFlyEl !== fly) return;
+            photoContainer.classList.add('visible');
+            setTimeout(function () {
+                if (fly && fly.parentNode) fly.remove();
+                if (state.activeFlyEl === fly) state.activeFlyEl = null;
+            }, 400);
+        }, 4000);
+
+        // Timer-IDs zwischenspeichern, damit cancelSpin sie clearen kann
+        state.flyPhaseBTimer = phaseB;
+        state.flyPhaseCTimer = phaseC;
     }
 
     window.onWinnerConfirm = async function () {
@@ -740,6 +871,7 @@
 
             // Direkt zurueck in die Hauptansicht — KEIN Erfolgs-Modal mehr.
             document.getElementById('winnerModal').classList.remove('open');
+            cleanupFly();
             // Operation-Token bumpen, damit eventuelle weitere alte Callbacks
             // (z.B. nachgelagerte fullscreenchange) sich selbst ignorieren.
             state.operationToken++;
@@ -766,6 +898,7 @@
         if (state.spinning) return;
         if (!state.winner) return; // nichts zu tun, wenn Modal schon geschlossen
         document.getElementById('winnerModal').classList.remove('open');
+        cleanupFly();
         state.winner = null;
         // Im naechsten Tick wieder drehen (Vollbild bleibt aktiv → kein Wachstum)
         setTimeout(onSpin, 50);
