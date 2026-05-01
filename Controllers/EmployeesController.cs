@@ -29,6 +29,8 @@ public class EmployeesController : Controller
     [HttpPost("Create")]
     public async Task<IActionResult> Create([FromBody] CreateRequest req)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen Personen anlegen." });
         if (req == null || string.IsNullOrWhiteSpace(req.Vorname))
             return Json(new { ok = false, error = "Vorname ist Pflicht." });
 
@@ -49,6 +51,8 @@ public class EmployeesController : Controller
     [HttpPost("Update")]
     public async Task<IActionResult> Update([FromBody] UpdateRequest req)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen aendern." });
         if (req == null) return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
         if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
@@ -66,6 +70,8 @@ public class EmployeesController : Controller
     [HttpPost("Delete")]
     public async Task<IActionResult> Delete([FromBody] DeleteRequest req)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen loeschen." });
         if (req == null || req.Id <= 0) return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
         if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
@@ -81,6 +87,8 @@ public class EmployeesController : Controller
     [HttpPost("ToggleActive")]
     public async Task<IActionResult> ToggleActive([FromBody] ToggleActiveRequest req)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen aendern." });
         if (req == null || req.Id <= 0) return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
         if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
@@ -97,6 +105,8 @@ public class EmployeesController : Controller
     [RequestSizeLimit(MaxPhotoBytes + 1024 * 1024)]
     public async Task<IActionResult> UploadPhoto([FromForm] int id, IFormFile? file)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen Fotos aendern." });
         if (id <= 0) return Json(new { ok = false, error = "Ungueltige ID." });
         if (file == null || file.Length == 0) return Json(new { ok = false, error = "Kein Foto ausgewaehlt." });
         if (file.Length > MaxPhotoBytes) return Json(new { ok = false, error = "Foto zu gross (max. 5 MB)." });
@@ -133,6 +143,8 @@ public class EmployeesController : Controller
     [HttpPost("DeletePhoto")]
     public async Task<IActionResult> DeletePhoto([FromBody] DeletePhotoRequest req)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen Fotos loeschen." });
         if (req == null || req.Id <= 0) return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
         if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });

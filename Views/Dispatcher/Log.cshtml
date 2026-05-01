@@ -47,10 +47,13 @@
                     var nochGesperrt = e.SperrBisUtc > jetzt;
                     var restTage = nochGesperrt ? Math.Max(1, (int)Math.Ceiling((e.SperrBisUtc - jetzt).TotalDays)) : 0;
                     <div class="timeline-item @(e.BlacklistIgnoriert ? "override" : "")" id="entry-@e.Id">
-                        <button type="button" class="timeline-delete" title="Diesen Eintrag löschen"
-                                onclick="onDeleteEntry(@e.Id, '@(e.Anzeigename.Replace("'", "\\'"))', '@bestaetigtLokal.ToString("dd.MM.yyyy HH:mm")')">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
+                        @if (istAdmin)
+                        {
+                            <button type="button" class="timeline-delete" title="Diesen Eintrag löschen"
+                                    onclick="onDeleteEntry(@e.Id, '@(e.Anzeigename.Replace("'", "\\'"))', '@bestaetigtLokal.ToString("dd.MM.yyyy HH:mm")')">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        }
                         <div class="timeline-date">
                             Dispatcher ausgewählt am @bestaetigtLokal.ToString("dddd, dd.MM.yyyy 'um' HH:mm 'Uhr'", new System.Globalization.CultureInfo("de-DE"))
                         </div>

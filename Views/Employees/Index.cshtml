@@ -1,21 +1,28 @@
 @model List<UENTDispatcher.Models.Employee>
 @{
-    ViewData["Title"] = "Mitarbeitende";
+    ViewData["Title"] = "Das Team";
+    var istAdmin = User.IsInRole("Admin");
 }
 
 <div class="app-page-header">
     <div>
-        <div class="app-page-title">👥 Mitarbeitende verwalten</div>
+        <div class="app-page-title">👥 Das Team</div>
         <div class="app-page-subtitle">
             Wer am Glücksrad teilnehmen darf. Inaktive Personen sind aus dem Pool ausgeschlossen.
-            Klick auf ein Foto, um es hochzuladen oder zu ersetzen.
+            @if (istAdmin)
+            {
+                <span>Klick auf ein Foto, um es hochzuladen oder zu ersetzen.</span>
+            }
         </div>
     </div>
-    <div>
-        <button type="button" class="btn-mc btn-mc-primary" onclick="openCreate()">
-            <i class="bi bi-plus-lg"></i> Person hinzufügen
-        </button>
-    </div>
+    @if (istAdmin)
+    {
+        <div>
+            <button type="button" class="btn-mc btn-mc-primary" onclick="openCreate()">
+                <i class="bi bi-plus-lg"></i> Person hinzufügen
+            </button>
+        </div>
+    }
 </div>
 
 <div class="mc-card">
@@ -48,35 +55,69 @@
                         var photoVersion = hasPhoto ? e.PhotoBytes!.Length : 0;
                         <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-aktiv="@(e.IstAktiv ? "1" : "0")">
                             <td>
-                                <div class="emp-avatar" onclick="triggerPhotoUpload(@e.Id)" title="Foto hochladen / ersetzen">
-                                    @if (hasPhoto)
-                                    {
-                                        <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id?v=@photoVersion" alt="@e.Vorname" />
-                                    }
-                                    else
-                                    {
-                                        <span class="emp-avatar-initials" id="emp-photo-@e.Id">@initials.ToUpper()</span>
-                                    }
-                                    <div class="emp-avatar-overlay"><i class="bi bi-camera"></i></div>
-                                </div>
+                                @if (istAdmin)
+                                {
+                                    <div class="emp-avatar" onclick="triggerPhotoUpload(@e.Id)" title="Foto hochladen / ersetzen">
+                                        @if (hasPhoto)
+                                        {
+                                            <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id?v=@photoVersion" alt="@e.Vorname" />
+                                        }
+                                        else
+                                        {
+                                            <span class="emp-avatar-initials" id="emp-photo-@e.Id">@initials.ToUpper()</span>
+                                        }
+                                        <div class="emp-avatar-overlay"><i class="bi bi-camera"></i></div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="emp-avatar emp-avatar-readonly" title="@e.Vorname">
+                                        @if (hasPhoto)
+                                        {
+                                            <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id?v=@photoVersion" alt="@e.Vorname" />
+                                        }
+                                        else
+                                        {
+                                            <span class="emp-avatar-initials" id="emp-photo-@e.Id">@initials.ToUpper()</span>
+                                        }
+                                    </div>
+                                }
                             </td>
                             <td class="emp-name-cell">
                                 <span class="emp-name">@e.Vorname</span>
                             </td>
                             <td>
-                                <button type="button"
-                                        class="toggle-switch @(e.IstAktiv ? "on" : "")"
-                                        id="emp-active-@e.Id"
-                                        onclick="onToggleActive(@e.Id, this)"
-                                        title="Am Glücksrad teilnehmen / nicht teilnehmen"></button>
+                                @if (istAdmin)
+                                {
+                                    <button type="button"
+                                            class="toggle-switch @(e.IstAktiv ? "on" : "")"
+                                            id="emp-active-@e.Id"
+                                            onclick="onToggleActive(@e.Id, this)"
+                                            title="Am Glücksrad teilnehmen / nicht teilnehmen"></button>
+                                }
+                                else if (e.IstAktiv)
+                                {
+                                    <span class="badge-free">Aktiv</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-locked">Inaktiv</span>
+                                }
                             </td>
                             <td class="emp-actions-cell">
-                                <button type="button" class="btn-mc btn-mc-ghost emp-action-btn" onclick="openEdit(@e.Id)">
-                                    <i class="bi bi-pencil"></i> Bearbeiten
-                                </button>
-                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname')" title="Löschen">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                @if (istAdmin)
+                                {
+                                    <button type="button" class="btn-mc btn-mc-ghost emp-action-btn" onclick="openEdit(@e.Id)">
+                                        <i class="bi bi-pencil"></i> Bearbeiten
+                                    </button>
+                                    <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname')" title="Löschen">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="muted" style="font-size:.78rem;">nur lesbar</span>
+                                }
                             </td>
                         </tr>
                     }

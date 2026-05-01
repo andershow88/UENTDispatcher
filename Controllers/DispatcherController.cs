@@ -112,6 +112,8 @@ public class DispatcherController : Controller
     [HttpPost("DeleteEntry")]
     public async Task<IActionResult> DeleteEntry([FromBody] DeleteEntryRequest req)
     {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen Eintraege loeschen." });
         if (req == null || req.Id <= 0)
             return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var result = await _svc.DeleteEntryAsync(req.Id);

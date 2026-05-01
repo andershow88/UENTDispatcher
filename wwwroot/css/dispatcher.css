@@ -948,6 +948,16 @@ a:hover { color: var(--mc-petrol-dark); }
     transform: scale(1.06);
     box-shadow: 0 6px 18px rgba(0,81,90,.25);
 }
+.emp-avatar.emp-avatar-readonly {
+    cursor: default;
+}
+.emp-avatar.emp-avatar-readonly:hover {
+    transform: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,.10);
+}
+.emp-avatar.emp-avatar-readonly .emp-avatar-overlay {
+    display: none;
+}
 .emp-avatar img {
     width: 100%; height: 100%;
     object-fit: cover;             /* Foto fuellt den Kreis intelligent */
@@ -979,6 +989,36 @@ a:hover { color: var(--mc-petrol-dark); }
 .emp-actions-cell {
     text-align: right;
     white-space: nowrap;
+}
+
+/* Rollen-Auswahl im User-Anlegen-Modal */
+.role-option {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .55rem .8rem;
+    border: 1.5px solid var(--mc-border);
+    border-radius: var(--mc-radius-sm);
+    cursor: pointer;
+    flex: 1; min-width: 200px;
+    transition: var(--mc-transition);
+}
+.role-option:hover {
+    border-color: var(--mc-petrol-light);
+    background: rgba(0,81,90,.04);
+}
+.role-option input[type="radio"] {
+    accent-color: var(--mc-petrol);
+}
+.role-option:has(input[type="radio"]:checked) {
+    border-color: var(--mc-petrol);
+    background: rgba(0,81,90,.06);
+}
+[data-theme="dark"] .role-option:hover {
+    background: rgba(200,169,110,.06);
+    border-color: var(--mc-gold-dark);
+}
+[data-theme="dark"] .role-option:has(input[type="radio"]:checked) {
+    background: rgba(200,169,110,.12);
+    border-color: var(--mc-gold);
 }
 
 /* Foto-Block im Edit-/Create-Modal */

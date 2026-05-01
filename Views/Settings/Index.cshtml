@@ -1,6 +1,8 @@
 @model UENTDispatcher.Models.AppSettings
 @{
     ViewData["Title"] = "Einstellungen";
+    var users = ViewBag.Users as List<UENTDispatcher.Models.AppUser> ?? new();
+    var ownIdClaim = User.FindFirst("UserId")?.Value ?? "";
 }
 
 <div class="app-page-header">
@@ -67,6 +69,141 @@
 
 </div>
 
+<div class="mc-card" style="margin-top: 1.4rem;">
+    <div class="mc-card-header">
+        <div class="mc-card-title"><i class="bi bi-people-fill"></i> Benutzerverwaltung (@users.Count)</div>
+        <button type="button" class="btn-mc btn-mc-primary" onclick="openUserCreate()">
+            <i class="bi bi-person-plus"></i> Neuer Benutzer
+        </button>
+    </div>
+    <div class="mc-card-body">
+        <table class="emp-table">
+            <thead>
+                <tr>
+                    <th>Benutzername</th>
+                    <th>Anzeigename</th>
+                    <th style="width:120px;">Rolle</th>
+                    <th style="width:140px; text-align:right;">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in users)
+                {
+                    var istEigen = u.Id.ToString() == ownIdClaim;
+                    <tr>
+                        <td style="padding:.7rem .8rem; font-weight:600; color:var(--mc-text-dark);">
+                            @u.Benutzername
+                            @if (istEigen)
+                            {
+                                <span class="muted" style="font-size:.76rem; font-weight:400; margin-left:.4rem;">(du)</span>
+                            }
+                        </td>
+                        <td style="padding:.7rem .8rem;">@u.Anzeigename</td>
+                        <td style="padding:.7rem .8rem;">
+                            @if (u.Rolle == "Admin")
+                            {
+                                <span class="timeline-tag gold"><i class="bi bi-shield-fill-check"></i> Admin</span>
+                            }
+                            else
+                            {
+                                <span class="timeline-tag"><i class="bi bi-person"></i> User</span>
+                            }
+                        </td>
+                        <td class="emp-actions-cell">
+                            @if (istEigen)
+                            {
+                                <span class="muted" style="font-size:.78rem;">eigenes Konto</span>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn"
+                                        onclick="onDeleteUser(@u.Id, '@u.Benutzername')">
+                                    <i class="bi bi-trash"></i> Löschen
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="muted" style="font-size:.82rem; margin-top:.8rem;">
+            Admins dürfen alles. User sehen Glücksrad, Verlauf, Das Team und Hinweise — aber dürfen nichts ändern.
+        </div>
+    </div>
+</div>
+
+<!-- ────────── User-Create-Modal ────────── -->
+<div class="modal-overlay" id="userModal" onclick="if(event.target===this) closeUserModal();">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div class="icon-circle"><i class="bi bi-person-plus"></i></div>
+            <div>
+                <div class="modal-title">Neuen Benutzer anlegen</div>
+                <div class="modal-subtitle">Zugang für Glücksrad und Verlauf einrichten</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="login-error" id="userError" style="display:none;"></div>
+            <div class="form-row">
+                <label class="form-label" for="newBenutzername">Benutzername</label>
+                <input type="text" id="newBenutzername" class="form-control" autocomplete="off" />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="newAnzeigename">Anzeigename</label>
+                <input type="text" id="newAnzeigename" class="form-control" autocomplete="off" />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="newPasswort">Passwort (mind. 4 Zeichen)</label>
+                <input type="password" id="newPasswort" class="form-control" autocomplete="new-password" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">Rolle</label>
+                <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+                    <label class="role-option">
+                        <input type="radio" name="newRolle" value="User" checked />
+                        <span><i class="bi bi-person"></i> User <span class="muted" style="font-size:.78rem;">— sieht alles, ändert nichts</span></span>
+                    </label>
+                    <label class="role-option">
+                        <input type="radio" name="newRolle" value="Admin" />
+                        <span><i class="bi bi-shield-fill-check"></i> Admin <span class="muted" style="font-size:.78rem;">— darf alles</span></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-mc btn-mc-ghost" onclick="closeUserModal()">Abbrechen</button>
+            <button type="button" class="btn-mc btn-mc-primary" id="userCreateBtn" onclick="createUser()">
+                <i class="bi bi-check2"></i> Anlegen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ────────── User-Delete-Modal ────────── -->
+<div class="modal-overlay" id="userDeleteModal" onclick="if(event.target===this) closeUserDeleteModal();">
+    <div class="modal-card">
+        <div class="modal-head danger">
+            <div class="icon-circle"><i class="bi bi-trash"></i></div>
+            <div>
+                <div class="modal-title">Benutzer löschen?</div>
+                <div class="modal-subtitle">Zugang wird sofort entfernt.</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-winner">
+                <div class="confirm-winner-name" id="userDelName">—</div>
+            </div>
+            <div class="login-error" id="userDelError" style="display:none; margin-top:.8rem;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-mc btn-mc-ghost" onclick="closeUserDeleteModal()">Abbrechen</button>
+            <button type="button" class="btn-mc btn-mc-danger" id="userDelConfirmBtn" onclick="performUserDelete()">
+                <i class="bi bi-trash"></i> Endgültig löschen
+            </button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     async function saveSettings() {
@@ -108,5 +245,115 @@
             btn.innerHTML = '<i class="bi bi-check2"></i> Speichern';
         }
     }
+
+    // ── Benutzerverwaltung ────────────────────────────────────────────
+    function openUserCreate() {
+        document.getElementById('newBenutzername').value = '';
+        document.getElementById('newAnzeigename').value = '';
+        document.getElementById('newPasswort').value = '';
+        document.querySelector('input[name="newRolle"][value="User"]').checked = true;
+        document.getElementById('userError').style.display = 'none';
+        document.getElementById('userModal').classList.add('open');
+        setTimeout(() => document.getElementById('newBenutzername').focus(), 100);
+    }
+    function closeUserModal() {
+        document.getElementById('userModal').classList.remove('open');
+    }
+
+    async function createUser() {
+        var benutzername = document.getElementById('newBenutzername').value.trim();
+        var anzeigename = document.getElementById('newAnzeigename').value.trim();
+        var passwort = document.getElementById('newPasswort').value;
+        var rolle = document.querySelector('input[name="newRolle"]:checked').value;
+        var err = document.getElementById('userError');
+        var btn = document.getElementById('userCreateBtn');
+        err.style.display = 'none';
+
+        if (!benutzername || !anzeigename || !passwort) {
+            err.textContent = 'Bitte alle Felder ausfüllen.';
+            err.style.display = 'block';
+            return;
+        }
+        if (passwort.length < 4) {
+            err.textContent = 'Passwort muss mindestens 4 Zeichen lang sein.';
+            err.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Lege an…';
+        try {
+            var res = await fetch('/Settings/CreateUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ benutzername: benutzername, anzeigename: anzeigename, passwort: passwort, rolle: rolle })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                err.textContent = data.error || 'Anlegen fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2"></i> Anlegen';
+                return;
+            }
+            location.reload();
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2"></i> Anlegen';
+        }
+    }
+
+    var pendingUserDeleteId = null;
+    function onDeleteUser(id, name) {
+        pendingUserDeleteId = id;
+        document.getElementById('userDelName').textContent = name;
+        document.getElementById('userDelError').style.display = 'none';
+        document.getElementById('userDeleteModal').classList.add('open');
+    }
+    function closeUserDeleteModal() {
+        document.getElementById('userDeleteModal').classList.remove('open');
+        pendingUserDeleteId = null;
+    }
+    async function performUserDelete() {
+        if (!pendingUserDeleteId) return;
+        var btn = document.getElementById('userDelConfirmBtn');
+        var err = document.getElementById('userDelError');
+        err.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Lösche…';
+        try {
+            var res = await fetch('/Settings/DeleteUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: pendingUserDeleteId })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                err.textContent = data.error || 'Löschen fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
+                return;
+            }
+            location.reload();
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        if (document.getElementById('userDeleteModal').classList.contains('open')) {
+            closeUserDeleteModal(); return;
+        }
+        if (document.getElementById('userModal').classList.contains('open')) {
+            closeUserModal();
+        }
+    });
 </script>
 }
