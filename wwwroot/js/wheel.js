@@ -93,9 +93,8 @@
     // ── UI Bindings ─────────────────────────────────────────────────────────
     function bindUI() {
         document.getElementById('btnSpin').addEventListener('click', onSpin);
-        document.getElementById('btnConfirm').addEventListener('click', onConfirm);
-        document.getElementById('btnRespin').addEventListener('click', onRespin);
         document.getElementById('toggleBlacklist').addEventListener('click', toggleBlacklist);
+        // Winner-Modal-Buttons sind via inline onclick gebunden (window.onWinnerConfirm/onWinnerRespin)
     }
 
     function toggleBlacklist() {
@@ -108,9 +107,6 @@
         recomputeEligible();
         drawWheel();
         updateStatusPanel();
-        // Wenn jemand schon "gewählt" wurde aber die Auswahl nicht mehr passt:
-        // Result einfach verstecken.
-        hideResult();
     }
 
     // ── Canvas-Drawing ──────────────────────────────────────────────────────
@@ -281,7 +277,6 @@
     async function onSpin() {
         if (state.spinning) return;
         hideError();
-        hideResult();
 
         if (state.eligible.length === 0) {
             showError(state.blacklistIgnoriert
@@ -297,7 +292,11 @@
         enterFullscreen(true);
 
         state.spinning = true;
-        document.getElementById('btnSpin').disabled = true;
+        var btnSpin = document.getElementById('btnSpin');
+        btnSpin.disabled = true;
+        // Drehen-Button waehrend des Spins komplett verstecken — die Buehne
+        // gehoert dem Rad. Erscheint erst wieder im Normal-View nach Bestaetigung.
+        btnSpin.style.display = 'none';
 
         var resp;
         try {
@@ -311,7 +310,9 @@
 
         if (!resp.ok) {
             state.spinning = false;
-            document.getElementById('btnSpin').disabled = false;
+            var btnSpinErr = document.getElementById('btnSpin');
+            btnSpinErr.disabled = false;
+            btnSpinErr.style.display = '';
             // Statuses synchronisieren — falls inzwischen jemand weggefallen ist
             if (resp.kandidaten) {
                 state.candidates = resp.kandidaten.map(c => ({
@@ -342,15 +343,10 @@
 
         animateSpinTo(idx, function () {
             state.spinning = false;
-            document.getElementById('btnSpin').disabled = false;
-            // Defensive: Confirm/Respin explizit aktiv setzen — nichts darf
-            // aus einem vorherigen Spin-Zyklus haengen bleiben.
-            var btnConfirm = document.getElementById('btnConfirm');
-            var btnRespin = document.getElementById('btnRespin');
-            if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen'; }
-            if (btnRespin) { btnRespin.disabled = false; }
             state.winner = winner;
-            showResult(winner);
+            // Direkt das Winner-Modal zeigen — kein Zwischen-Result-Block,
+            // keine separaten Bottom-Buttons.
+            showWinnerModal(winner);
         });
     }
 
@@ -378,34 +374,6 @@
         setTimeout(onDone, 18100);
     }
 
-    function showResult(winner) {
-        var box = document.getElementById('wheelResult');
-        var nameEl = document.getElementById('resultName');
-        var hintEl = document.getElementById('resultHint');
-        nameEl.textContent = winner.anzeigename;
-
-        if (winner.gesperrt) {
-            hintEl.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
-                winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. ' +
-                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische 21 Tage gesetzt.';
-        } else {
-            hintEl.textContent = 'Bitte bestätigen, um die Auswahl als Dispatcher der Woche festzuhalten.';
-        }
-
-        box.style.display = 'flex';
-        document.getElementById('actionsAfterSpin').style.display = 'flex';
-        // Drehen-Button waehrend der Result-Phase verstecken — die Aktionen
-        // "Bestaetigen" / "Erneut drehen" stehen separat zur Verfuegung,
-        // damit nicht zwei "Erneut drehen"-Buttons nebeneinander erscheinen.
-        document.getElementById('btnSpin').style.display = 'none';
-    }
-    function hideResult() {
-        document.getElementById('wheelResult').style.display = 'none';
-        document.getElementById('actionsAfterSpin').style.display = 'none';
-        document.getElementById('btnSpin').style.display = '';
-        document.getElementById('btnSpin').innerHTML = '<i class="bi bi-arrow-repeat"></i> Drehen';
-        state.winner = null;
-    }
     function showError(msg) {
         var el = document.getElementById('wheelError');
         el.textContent = msg;
@@ -415,23 +383,74 @@
         document.getElementById('wheelError').style.display = 'none';
     }
 
-    // ── Confirm / Respin ────────────────────────────────────────────────────
-    function onRespin() {
-        if (state.spinning) return;
-        hideResult();
-        // Kleiner setTimeout schiebt den Spin-Start auf den naechsten Tick —
-        // das gibt dem DOM Zeit, hideResult-Aenderungen anzuwenden, bevor
-        // onSpin den Zustand kippt. In der Praxis verhindert das eine
-        // seltene Race-Condition, bei der actionsAfterSpin scheinbar
-        // sichtbar bleibt obwohl der Spin laeuft.
-        setTimeout(onSpin, 30);
+    // ── Winner-Modal ────────────────────────────────────────────────────────
+    // Nach jedem Spin wird genau EIN grosses Modal zentriert ueber dem
+    // Vollbild-Rad gezeigt: "Glueckwunsch, diese Woche bist du dran, <Name>"
+    // mit zufaelligem witzigen Text. Aktionen: Bestaetigen oder Erneut drehen.
+    // Kein zweites Modal mehr nach Bestaetigen — direkt zurueck zur Hauptansicht.
+
+    var WITTY_LINES = [
+        "Tickets warten nicht, {vorname}. Auf gehts! 📨",
+        "Diese Woche bist du das Schicksal des Service Desks. ⚡",
+        "Glückwunsch zum heißen Stuhl. Kaffee bereit? ☕",
+        "Der Algorithmus hat gesprochen — und {vorname} hat gewonnen.",
+        "Halte das Team am Laufen, {vorname}. Du schaffst das!",
+        "Service-Desk-Adel diese Woche. Trag die Krone mit Stolz. 👑",
+        "Dispatcher-Mode: aktiviert. Möge die Macht mit dir sein.",
+        "Diese Woche dreht sich alles um dich. (Wortwörtlich.) 🎯",
+        "Auserwählt vom Glücksrad — und vom Team.",
+        "Frische Dispatcher-Energie. Es kann losgehen!",
+        "Tag eins von sieben — du hast das im Griff!",
+        "Heute du, nächste Woche jemand anders. Aber jetzt: du!",
+        "Der Goldzeiger zeigt auf {vorname}. Glückwunsch!",
+        "{vorname}, mach das Service Desk stolz!",
+        "Es ist {vorname}-Zeit. Das Team verlässt sich auf dich.",
+        "Glückwunsch — du bist heute der/die heißeste Dispatcher:in der Stadt."
+    ];
+
+    function pickWittyLine(winner) {
+        var line = WITTY_LINES[Math.floor(Math.random() * WITTY_LINES.length)];
+        var firstName = (winner.anzeigename || '').split(' ')[0];
+        return line.replace(/\{vorname\}/g, firstName);
     }
 
-    async function onConfirm() {
-        if (!state.winner || state.spinning) return;
-        var btn = document.getElementById('btnConfirm');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Speichere…';
+    function showWinnerModal(winner) {
+        document.getElementById('winnerName').textContent = winner.anzeigename;
+        document.getElementById('winnerWitty').textContent = pickWittyLine(winner);
+
+        var lockHint = document.getElementById('winnerLockHint');
+        if (winner.gesperrt) {
+            lockHint.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
+                winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. ' +
+                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische 21 Tage gesetzt.';
+            lockHint.style.display = 'block';
+        } else {
+            lockHint.style.display = 'none';
+        }
+
+        var err = document.getElementById('winnerError');
+        if (err) err.style.display = 'none';
+
+        var confirmBtn = document.getElementById('winnerConfirmBtn');
+        var respinBtn = document.getElementById('winnerRespinBtn');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+        respinBtn.disabled = false;
+
+        document.getElementById('winnerModal').classList.add('open');
+        // Konfetti zur Feier des ausgewaehlten — dezente Celebration, kein
+        // separates Modal danach mehr.
+        confetti();
+    }
+
+    window.onWinnerConfirm = async function () {
+        if (!state.winner) return;
+        var confirmBtn = document.getElementById('winnerConfirmBtn');
+        var respinBtn = document.getElementById('winnerRespinBtn');
+        var err = document.getElementById('winnerError');
+        err.style.display = 'none';
+        confirmBtn.disabled = true; respinBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Speichere…';
 
         try {
             var resp = await postJson('/Dispatcher/Confirm', {
@@ -439,18 +458,13 @@
                 blacklistIgnoriert: state.blacklistIgnoriert
             });
             if (!resp.ok) {
-                showError(resp.error || 'Bestätigung fehlgeschlagen.');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+                err.textContent = resp.error || 'Bestätigung fehlgeschlagen.';
+                err.style.display = 'block';
+                confirmBtn.disabled = false; respinBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
                 return;
             }
-            // Erfolgs-Modal bleibt IM Vollbildmodus zentriert ueber dem Rad —
-            // erst beim Klick auf "Schliessen" verlassen wir den Vollbild.
-            confetti();
-            showSuccessModal(resp.info);
-
-            // Status im Hintergrund aktualisieren, damit nach dem Schliessen
-            // alles frisch ist (Sperrlisten, Restdauer-Counter etc.).
+            // Status im Hintergrund frisch ziehen, damit Sperrlisten passen
             try {
                 var statusResp = await fetch('/Dispatcher/Status');
                 if (statusResp.ok) {
@@ -461,45 +475,31 @@
                     }));
                     recomputeEligible();
                 }
-            } catch (e) { /* Modal trotzdem sauber schliessbar */ }
+            } catch (e) { /* trotzdem sauber schliessen */ }
 
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+            // Direkt zurueck in die Hauptansicht — KEIN Erfolgs-Modal mehr.
+            document.getElementById('winnerModal').classList.remove('open');
+            exitFullscreen();
+            state.spinning = false;
+            state.winner = null;
+            var btnSpin = document.getElementById('btnSpin');
+            if (btnSpin) { btnSpin.disabled = false; btnSpin.style.display = ''; }
+            drawWheel();
+            updateStatusPanel();
         } catch (e) {
-            showError('Verbindungsfehler: ' + e.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            confirmBtn.disabled = false; respinBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
         }
-    }
+    };
 
-    function showSuccessModal(info) {
-        var modal = document.getElementById('successModal');
-        document.getElementById('successName').textContent = info.anzeigename;
-        var until = new Date(info.sperrBisUtc);
-        var fmt = until.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        document.getElementById('successMeta').textContent = 'Gesperrt bis ' + fmt + ' (21 Tage)';
-        modal.classList.add('open');
-    }
-
-    window.closeSuccessModal = function () {
-        document.getElementById('successModal').classList.remove('open');
-        // Erst jetzt zurueck in die Normalansicht — Vollbild verlassen,
-        // Result/Spin-Buttons resetten, Status-Panel mit den frischen
-        // Daten neu rendern. Defensive: alle Spin-bezogenen States hart
-        // zuruecksetzen, damit der Drehen-Button beim naechsten Mal
-        // garantiert wieder klickbar ist.
-        exitFullscreen();
-        hideResult();
-        state.spinning = false;
+    window.onWinnerRespin = function () {
+        if (state.spinning) return;
+        document.getElementById('winnerModal').classList.remove('open');
         state.winner = null;
-        var btnSpin = document.getElementById('btnSpin');
-        var btnConfirm = document.getElementById('btnConfirm');
-        var btnRespin = document.getElementById('btnRespin');
-        if (btnSpin) { btnSpin.disabled = false; btnSpin.style.display = ''; }
-        if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen'; }
-        if (btnRespin) { btnRespin.disabled = false; }
-        drawWheel();
-        updateStatusPanel();
+        // Im naechsten Tick wieder drehen (Vollbild bleibt aktiv → kein Wachstum)
+        setTimeout(onSpin, 50);
     };
 
     function confetti() {

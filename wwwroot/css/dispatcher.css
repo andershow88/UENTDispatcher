@@ -688,6 +688,62 @@ a:hover { color: var(--mc-petrol-dark); }
 .muted { color: var(--mc-text-muted); }
 .spacer-sm { height: .8rem; }
 
+/* ════════════════════════════ Winner-Modal ═══════════════════════════════
+   Erscheint genau einmal pro Spin, sobald das Rad steht. Enthaelt Name,
+   witzigen Text und die Aktionen Bestaetigen / Erneut drehen — danach
+   gibt es kein zweites Modal mehr. */
+
+.winner-card { max-width: 560px; }
+
+.winner-head {
+    /* etwas dramatischer als das Standard modal-head */
+    padding: 1.6rem 1.8rem;
+}
+.winner-emoji {
+    font-size: 2.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+}
+
+.winner-name {
+    font-size: clamp(1.9rem, 5vw, 3rem);
+    font-weight: 800;
+    color: var(--mc-text-dark);
+    margin: .3rem 0 .9rem;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--mc-petrol), var(--mc-gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.winner-witty {
+    font-size: 1.05rem;
+    color: var(--mc-text);
+    line-height: 1.55;
+    font-style: italic;
+    padding: 0 .4rem;
+}
+
+.winner-lock-hint {
+    margin-top: 1rem;
+    padding: .75rem 1rem;
+    background: var(--mc-warning-bg);
+    color: #92400e;
+    border: 1px solid rgba(245,158,11,.3);
+    border-radius: var(--mc-radius-sm);
+    font-size: .82rem;
+    line-height: 1.5;
+    text-align: left;
+}
+[data-theme="dark"] .winner-lock-hint {
+    color: #fcd34d;
+    background: rgba(245,158,11,.18);
+    border-color: rgba(245,158,11,.4);
+}
+
 /* ════════════════════════════ Mitarbeiter-Tabelle ═════════════════════════ */
 
 .emp-table {
@@ -853,33 +909,6 @@ body.wheel-fs .wheel-actions {
     background: rgba(15,20,25,.85);
 }
 
-/* Ergebnis-Box schwebt oben — wird erst nach dem Spin sichtbar */
-body.wheel-fs .wheel-result {
-    position: fixed;
-    top: clamp(1rem, 3vh, 2rem);
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 0;
-    width: min(640px, 92vw);
-    z-index: 10;
-    padding: 1.2rem 1.6rem;
-    background: rgba(255,255,255,.93);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-[data-theme="dark"] body.wheel-fs .wheel-result {
-    background: rgba(23,32,38,.93);
-}
-body.wheel-fs .wheel-result-name {
-    font-size: clamp(1.6rem, 4vw, 2.6rem);
-    line-height: 1.15;
-}
-body.wheel-fs .wheel-result-icon {
-    width: 60px; height: 60px; font-size: 1.7rem; flex-shrink: 0;
-}
-body.wheel-fs .wheel-result-label {
-    font-size: .82rem;
-}
 body.wheel-fs .wheel-error {
     position: fixed;
     top: clamp(1rem, 3vh, 2rem);

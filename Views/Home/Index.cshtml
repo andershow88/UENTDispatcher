@@ -34,23 +34,6 @@
             <button id="btnSpin" class="btn-mc btn-mc-primary btn-mc-lg">
                 <i class="bi bi-arrow-repeat"></i> Drehen
             </button>
-            <div id="actionsAfterSpin" style="display:none; gap:.7rem;">
-                <button id="btnConfirm" class="btn-mc btn-mc-gold btn-mc-lg">
-                    <i class="bi bi-check2-circle"></i> Bestätigen
-                </button>
-                <button id="btnRespin" class="btn-mc btn-mc-ghost btn-mc-lg">
-                    <i class="bi bi-arrow-clockwise"></i> Erneut drehen
-                </button>
-            </div>
-        </div>
-
-        <div id="wheelResult" class="wheel-result" style="display:none;">
-            <div class="wheel-result-icon"><i class="bi bi-trophy"></i></div>
-            <div>
-                <div class="wheel-result-label">Ausgewählt</div>
-                <div id="resultName" class="wheel-result-name">—</div>
-                <div id="resultHint" class="wheel-result-hint"></div>
-            </div>
         </div>
 
         <div id="wheelError" class="wheel-error" style="display:none;"></div>
@@ -93,28 +76,28 @@
 
 </div>
 
-<!-- ────────────────── Confirm-Erfolg-Modal ────────────────── -->
-<div class="modal-overlay" id="successModal" onclick="if(event.target===this) closeSuccessModal();">
-    <div class="modal-card">
-        <div class="modal-head">
-            <div class="icon-circle"><i class="bi bi-trophy-fill"></i></div>
+<!-- ────────────────── Winner-Modal: erscheint, sobald das Rad steht ────────────────── -->
+<div class="modal-overlay" id="winnerModal">
+    <div class="modal-card winner-card">
+        <div class="modal-head winner-head">
+            <div class="winner-emoji">🎉</div>
             <div>
-                <div class="modal-title">Dispatcher bestätigt!</div>
-                <div class="modal-subtitle">Die Auswahl wurde im Verlauf gespeichert.</div>
+                <div class="modal-title">Glückwunsch!</div>
+                <div class="modal-subtitle">Diese Woche bist du dran</div>
             </div>
         </div>
-        <div class="modal-body">
-            <div class="confirm-winner">
-                <div class="confirm-winner-name" id="successName">—</div>
-                <div class="confirm-winner-meta" id="successMeta"></div>
-            </div>
-            <div class="muted" style="font-size:.86rem; text-align:center;">
-                Viel Erfolg! 🚀 Diese Person übernimmt jetzt das Service Desk.
-            </div>
+        <div class="modal-body" style="text-align:center;">
+            <div class="winner-name" id="winnerName">—</div>
+            <div class="winner-witty" id="winnerWitty">—</div>
+            <div id="winnerLockHint" class="winner-lock-hint" style="display:none;"></div>
+            <div class="login-error" id="winnerError" style="display:none; margin-top:.8rem;"></div>
         </div>
-        <div class="modal-footer" style="justify-content: center;">
-            <button type="button" class="btn-mc btn-mc-primary btn-mc-lg" onclick="closeSuccessModal()">
-                <i class="bi bi-check2"></i> Schließen
+        <div class="modal-footer" style="justify-content:center; gap:.8rem;">
+            <button type="button" class="btn-mc btn-mc-ghost btn-mc-lg" id="winnerRespinBtn" onclick="onWinnerRespin()">
+                <i class="bi bi-arrow-clockwise"></i> Erneut drehen
+            </button>
+            <button type="button" class="btn-mc btn-mc-gold btn-mc-lg" id="winnerConfirmBtn" onclick="onWinnerConfirm()">
+                <i class="bi bi-check2-circle"></i> Bestätigen
             </button>
         </div>
     </div>
