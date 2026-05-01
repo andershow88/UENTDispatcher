@@ -43,12 +43,15 @@
                     {
                         var initials = e.Vorname.Length > 0 ? e.Vorname.Substring(0, Math.Min(2, e.Vorname.Length)) : "?";
                         var hasPhoto = e.PhotoBytes != null && e.PhotoBytes.Length > 0;
+                        // Cache-Bust per Foto-Bytelaenge: aendert sich das Foto, aendert sich
+                        // die Laenge → andere URL → Browser laedt frisch (umgeht den 1h-Cache).
+                        var photoVersion = hasPhoto ? e.PhotoBytes!.Length : 0;
                         <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-aktiv="@(e.IstAktiv ? "1" : "0")">
                             <td>
                                 <div class="emp-avatar" onclick="triggerPhotoUpload(@e.Id)" title="Foto hochladen / ersetzen">
                                     @if (hasPhoto)
                                     {
-                                        <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id" alt="@e.Vorname" />
+                                        <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id?v=@photoVersion" alt="@e.Vorname" />
                                     }
                                     else
                                     {
