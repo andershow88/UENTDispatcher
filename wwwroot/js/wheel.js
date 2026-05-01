@@ -21,7 +21,9 @@
         winner: null,
         blacklistIgnoriert: false,
         antiforgeryToken: null,
-        sperreTage: 21          // wird via init() gesetzt
+        sperreTage: 21,         // wird via init() gesetzt
+        spinTimeoutId: null,    // setTimeout-ID des laufenden Spins (zum Cancellen)
+        operationToken: 0       // monoton steigender Token: alte async-Callbacks erkennen
     };
 
     // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
@@ -46,15 +48,82 @@
         window.addEventListener('uent:theme-changed', function () {
             if (!state.spinning) drawWheel();
         });
-        // Echte Browser-Fullscreen-Aenderungen (z. B. Esc) mit unserem
-        // body.wheel-fs Status synchronisieren — Browser-Einstellungen
-        // sollen in beide Richtungen sauber zurueckgesetzt werden.
+        // Echte Browser-Fullscreen-Aenderungen (z. B. Esc) erkennen.
+        // exitFullscreen() entfernt body.wheel-fs synchron, BEVOR es exit-
+        // Fullscreen aufruft. Im fullscreenchange-Event kann man also am
+        // Vorhandensein der Klasse erkennen, ob das eine User-Exit-Aktion
+        // war (Klasse noch da → User hat Esc gedrueckt) oder von uns ange-
+        // stossen (Klasse weg → app-initiiert, kein Cancel noetig).
         document.addEventListener('fullscreenchange', function () {
-            if (!document.fullscreenElement && document.body.classList.contains('wheel-fs')) {
-                document.body.classList.remove('wheel-fs');
-                if (!state.spinning) drawWheel();
+            if (document.fullscreenElement) return;
+            var stillHasFsClass = document.body.classList.contains('wheel-fs');
+            if (!stillHasFsClass) {
+                // App-initiierter Exit (Bestaetigen-Pfad) — alles bereits geregelt
+                return;
+            }
+            // User-initiierter Exit waehrend Spin oder Winner-Modal — abort + reset
+            document.body.classList.remove('wheel-fs');
+            if (state.spinning || state.winner) {
+                cancelSpin();
+                showError('Vorgang abgebrochen — der Vollbildmodus wurde verlassen. Bitte erneut drehen.');
+            } else if (!state.spinning) {
+                drawWheel();
             }
         });
+        // Ebenfalls: tab-/window-Wechsel mid-spin → Spin abbrechen, sauberer State
+        window.addEventListener('pagehide', function () { cancelSpin(); });
+    }
+
+    // ── Cancel-Spin: harte Reset-Funktion fuer alle Fehler-/Abbruch-Situationen
+    function cancelSpin() {
+        // Operation-Token erhoehen → laufende async-Callbacks aus alten Operationen
+        // erkennen daran, dass ihr Token nicht mehr gueltig ist.
+        state.operationToken++;
+        // Spin-Timeout abbrechen, falls Animation noch laeuft
+        if (state.spinTimeoutId) {
+            clearTimeout(state.spinTimeoutId);
+            state.spinTimeoutId = null;
+        }
+        state.spinning = false;
+        state.winner = null;
+
+        // CSS-Transition kurz aussetzen, damit das Rad an seiner aktuellen
+        // Position einrastet (sonst dreht es nach Cancel weiter zum Zielwinkel).
+        var canvas = document.getElementById('wheelCanvas');
+        if (canvas) {
+            var savedTransition = canvas.style.transition;
+            canvas.style.transition = 'none';
+            canvas.style.transform = 'rotate(' + state.currentRotation + 'deg)';
+            void canvas.offsetWidth; // erzwinge Reflow
+            canvas.style.transition = savedTransition || '';
+        }
+
+        // Wachstums-Animation stoppen
+        var wrap = document.querySelector('.wheel-canvas-wrap');
+        if (wrap) wrap.classList.remove('growing');
+
+        // Winner-Modal schliessen
+        var winModal = document.getElementById('winnerModal');
+        if (winModal) winModal.classList.remove('open');
+
+        // Drehen-Button wiederherstellen
+        var btnSpin = document.getElementById('btnSpin');
+        if (btnSpin) {
+            btnSpin.disabled = false;
+            btnSpin.style.display = '';
+            btnSpin.innerHTML = '<i class="bi bi-arrow-repeat"></i> Drehen';
+        }
+        // Confirm/Respin-Buttons fuers naechste Mal in sauberem Zustand
+        var btnConfirm = document.getElementById('winnerConfirmBtn');
+        var btnRespin = document.getElementById('winnerRespinBtn');
+        if (btnConfirm) {
+            btnConfirm.disabled = false;
+            btnConfirm.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+        }
+        if (btnRespin) btnRespin.disabled = false;
+
+        drawWheel();
+        updateStatusPanel();
     }
 
     // ── Fullscreen-Helfer ───────────────────────────────────────────────────
@@ -417,6 +486,14 @@
     // ── Spin ────────────────────────────────────────────────────────────────
     async function onSpin() {
         if (state.spinning) return;
+        // Falls noch ein altes Modal offen ist (z. B. nach Reload mit altem
+        // State), zumachen und Token erhoehen, damit alte async-Callbacks
+        // erkennen, dass sie nicht mehr aktuell sind.
+        var modal = document.getElementById('winnerModal');
+        if (modal && modal.classList.contains('open')) modal.classList.remove('open');
+        state.winner = null;
+        state.operationToken++;
+        var myToken = state.operationToken;
         hideError();
 
         if (state.eligible.length === 0) {
@@ -443,17 +520,14 @@
         try {
             resp = await postJson('/Dispatcher/Spin', { blacklistIgnoriert: state.blacklistIgnoriert });
         } catch (e) {
-            state.spinning = false;
-            document.getElementById('btnSpin').disabled = false;
+            if (myToken !== state.operationToken) return; // wurde abgebrochen
+            cancelSpin();
             showError('Verbindungsfehler: ' + e.message);
             return;
         }
+        if (myToken !== state.operationToken) return; // abgebrochen waehrend Awaits
 
         if (!resp.ok) {
-            state.spinning = false;
-            var btnSpinErr = document.getElementById('btnSpin');
-            btnSpinErr.disabled = false;
-            btnSpinErr.style.display = '';
             // Statuses synchronisieren — falls inzwischen jemand weggefallen ist
             if (resp.kandidaten) {
                 state.candidates = resp.kandidaten.map(c => ({
@@ -461,8 +535,8 @@
                     gesperrt: c.gesperrt, restTage: c.restTage
                 }));
                 recomputeEligible();
-                drawWheel(); updateStatusPanel();
             }
+            cancelSpin();
             showError(resp.error || 'Auswahl fehlgeschlagen.');
             return;
         }
@@ -483,10 +557,10 @@
         if (idx < 0) idx = 0;
 
         animateSpinTo(idx, function () {
+            // Wenn waehrenddessen abgebrochen wurde: nichts tun
+            if (myToken !== state.operationToken) return;
             state.spinning = false;
             state.winner = winner;
-            // Direkt das Winner-Modal zeigen — kein Zwischen-Result-Block,
-            // keine separaten Bottom-Buttons.
             showWinnerModal(winner);
         });
     }
@@ -512,7 +586,11 @@
         canvas.style.transform = 'rotate(' + newRot + 'deg)';
 
         // CSS-Transition steht in dispatcher.css (18s cubic-bezier).
-        setTimeout(onDone, 18100);
+        // Timeout-ID merken, damit cancelSpin() den Callback abbrechen kann.
+        state.spinTimeoutId = setTimeout(function () {
+            state.spinTimeoutId = null;
+            onDone();
+        }, 18100);
     }
 
     function showError(msg) {
@@ -588,6 +666,8 @@
 
     window.onWinnerConfirm = async function () {
         if (!state.winner) return;
+        var winnerSnapshot = state.winner; // wir arbeiten gegen diesen Snapshot
+        var myToken = state.operationToken;
         var confirmBtn = document.getElementById('winnerConfirmBtn');
         var respinBtn = document.getElementById('winnerRespinBtn');
         var err = document.getElementById('winnerError');
@@ -597,9 +677,13 @@
 
         try {
             var resp = await postJson('/Dispatcher/Confirm', {
-                employeeId: state.winner.id,
+                employeeId: winnerSnapshot.id,
                 blacklistIgnoriert: state.blacklistIgnoriert
             });
+            // Wenn waehrend des Awaits abgebrochen wurde, hier raus —
+            // cancelSpin hat alles bereits zurueckgesetzt.
+            if (myToken !== state.operationToken) return;
+
             if (!resp.ok) {
                 err.textContent = resp.error || 'Bestätigung fehlgeschlagen.';
                 err.style.display = 'block';
@@ -610,8 +694,10 @@
             // Status im Hintergrund frisch ziehen, damit Sperrlisten passen
             try {
                 var statusResp = await fetch('/Dispatcher/Status');
+                if (myToken !== state.operationToken) return;
                 if (statusResp.ok) {
                     var list = await statusResp.json();
+                    if (myToken !== state.operationToken) return;
                     state.candidates = list.map(c => ({
                         id: c.id, anzeigename: c.anzeigename,
                         gesperrt: c.gesperrt, restTage: c.restTage
@@ -620,16 +706,25 @@
                 }
             } catch (e) { /* trotzdem sauber schliessen */ }
 
+            if (myToken !== state.operationToken) return;
+
             // Direkt zurueck in die Hauptansicht — KEIN Erfolgs-Modal mehr.
             document.getElementById('winnerModal').classList.remove('open');
+            // Operation-Token bumpen, damit eventuelle weitere alte Callbacks
+            // (z.B. nachgelagerte fullscreenchange) sich selbst ignorieren.
+            state.operationToken++;
             exitFullscreen();
             state.spinning = false;
             state.winner = null;
             var btnSpin = document.getElementById('btnSpin');
-            if (btnSpin) { btnSpin.disabled = false; btnSpin.style.display = ''; }
+            if (btnSpin) { btnSpin.disabled = false; btnSpin.style.display = ''; btnSpin.innerHTML = '<i class="bi bi-arrow-repeat"></i> Drehen'; }
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
+            respinBtn.disabled = false;
             drawWheel();
             updateStatusPanel();
         } catch (e) {
+            if (myToken !== state.operationToken) return;
             err.textContent = 'Verbindungsfehler: ' + e.message;
             err.style.display = 'block';
             confirmBtn.disabled = false; respinBtn.disabled = false;
@@ -639,6 +734,7 @@
 
     window.onWinnerRespin = function () {
         if (state.spinning) return;
+        if (!state.winner) return; // nichts zu tun, wenn Modal schon geschlossen
         document.getElementById('winnerModal').classList.remove('open');
         state.winner = null;
         // Im naechsten Tick wieder drehen (Vollbild bleibt aktiv → kein Wachstum)
