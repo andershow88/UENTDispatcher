@@ -29,6 +29,7 @@ public class AppDbContext : DbContext
             e.HasKey(p => p.Id);
             e.Property(p => p.Vorname).HasMaxLength(100).IsRequired();
             e.Property(p => p.Nachname).HasMaxLength(100).IsRequired();
+            e.Property(p => p.PhotoMimeType).HasMaxLength(50);
             e.HasIndex(p => p.IstAktiv);
         });
 
@@ -63,6 +64,11 @@ public class Employee
     public string Nachname { get; set; } = string.Empty;
     public bool IstAktiv { get; set; } = true;
     public DateTime ErstelltAm { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Profilbild als Bytes — Null wenn kein Foto hinterlegt.</summary>
+    public byte[]? PhotoBytes { get; set; }
+    /// <summary>MIME-Type des Fotos (z. B. image/jpeg).</summary>
+    public string? PhotoMimeType { get; set; }
 
     public List<DispatcherSelection> Auswahlen { get; set; } = new();
 

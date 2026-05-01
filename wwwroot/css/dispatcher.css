@@ -291,8 +291,8 @@ a:hover { color: var(--mc-petrol-dark); }
 .wheel-canvas {
     width: 100%; height: 100%; display: block;
     filter: drop-shadow(0 12px 30px rgba(0,81,90,.18));
-    /* Rotation: 15 s, starkes Ease-out → wird kontinuierlich langsamer bis Stillstand */
-    transition: transform 15s cubic-bezier(.08, .85, .15, 1);
+    /* Rotation: 18 s, starkes Ease-out → wird kontinuierlich langsamer bis Stillstand */
+    transition: transform 18s cubic-bezier(.07, .85, .12, 1);
     transform-origin: 50% 50%;
 }
 
@@ -300,11 +300,11 @@ a:hover { color: var(--mc-petrol-dark); }
    Die Klasse wird per JS gesetzt und nach dem Spin (Exit Vollbild) wieder
    entfernt. In-Fullscreen-Re-Spins zeigen die Animation NICHT. */
 @keyframes wheelGrow {
-    0%   { transform: scale(0.42); }
+    0%   { transform: scale(0.38); }
     100% { transform: scale(1);    }
 }
 .wheel-canvas-wrap.growing {
-    animation: wheelGrow 15s cubic-bezier(.18, .65, .25, 1) forwards;
+    animation: wheelGrow 18s cubic-bezier(.18, .65, .25, 1) forwards;
     transform-origin: 50% 50%;
 }
 .wheel-pointer {
@@ -688,6 +688,87 @@ a:hover { color: var(--mc-petrol-dark); }
 .muted { color: var(--mc-text-muted); }
 .spacer-sm { height: .8rem; }
 
+/* ════════════════════════════ Mitarbeiter-Tabelle ═════════════════════════ */
+
+.emp-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.emp-table thead th {
+    text-align: left;
+    padding: .55rem .8rem;
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--mc-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    border-bottom: 1px solid var(--mc-border);
+}
+.emp-table tbody tr {
+    border-bottom: 1px solid var(--mc-border);
+    transition: background .15s;
+}
+.emp-table tbody tr:hover {
+    background: rgba(0,81,90,.04);
+}
+[data-theme="dark"] .emp-table tbody tr:hover {
+    background: rgba(200,169,110,.06);
+}
+.emp-table tbody td {
+    padding: .7rem .8rem;
+    vertical-align: middle;
+}
+
+.emp-name { font-weight: 600; color: var(--mc-text-dark); }
+.emp-action-btn {
+    padding: .35rem .8rem;
+    font-size: .82rem;
+    margin-left: .3rem;
+}
+
+/* Avatar mit Hover-Overlay (Klick zum Foto-Upload) */
+.emp-avatar {
+    position: relative;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--mc-petrol), var(--mc-petrol-light));
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    transition: var(--mc-transition);
+    user-select: none;
+}
+.emp-avatar:hover {
+    transform: scale(1.06);
+    box-shadow: 0 4px 12px rgba(0,81,90,.25);
+}
+.emp-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.emp-avatar-initials {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: .04em;
+}
+.emp-avatar-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    opacity: 0;
+    transition: opacity .2s;
+}
+.emp-avatar:hover .emp-avatar-overlay {
+    opacity: 1;
+}
+
 /* ════════════════════════════ Wheel Vollbild-Modus ═══════════════════════
    Aktiviert ueber body.wheel-fs (von wheel.js gesetzt). Versteckt Sidebar,
    Status-Spalte, Toggle-Row und Page-Header — Wheel und Result fuellen
@@ -722,45 +803,106 @@ body.wheel-fs .wheel-frame {
     height: 100vh;
     height: 100dvh;
     margin: 0;
-    padding: clamp(1rem, 3vh, 2.5rem);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
+    padding: 0;
+    overflow: hidden;
+    display: block;
+    position: relative;
 }
+/* Rad: zentriert per absoluter Positionierung, fuellt fast den ganzen
+   Viewport. Buttons + Ergebnis schweben darueber (siehe unten). */
 body.wheel-fs .wheel-canvas-wrap {
-    max-width: min(75vh, 80vw, 720px);
-    width: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(95vh, 95vw, 1200px);
+    height: min(95vh, 95vw, 1200px);
+    max-width: 95vw;
+    max-height: 95vh;
+    margin: 0;
+    /* translate sitzt im transform; growing-Animation und CSS unten
+       muessen das beruecksichtigen */
+    transform: translate(-50%, -50%);
+    transform-origin: 50% 50%;
 }
+/* Wachstums-Animation muss translate(-50%,-50%) MITNEHMEN, sonst springt
+   das Rad beim Animationsstart aus der Mitte. */
+@keyframes wheelGrowFs {
+    0%   { transform: translate(-50%, -50%) scale(0.38); }
+    100% { transform: translate(-50%, -50%) scale(1);    }
+}
+body.wheel-fs .wheel-canvas-wrap.growing {
+    animation: wheelGrowFs 18s cubic-bezier(.18, .65, .25, 1) forwards;
+}
+
+/* Buttons schweben unten zentriert ueber dem Rad — immer sichtbar. */
 body.wheel-fs .wheel-actions {
-    margin-top: 0;
+    position: fixed;
+    left: 50%;
+    bottom: clamp(1rem, 3vh, 2rem);
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 10;
+    background: rgba(255,255,255,.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: .7rem 1rem;
+    border-radius: var(--mc-radius-pill);
+    box-shadow: var(--mc-shadow-lg);
 }
+[data-theme="dark"] body.wheel-fs .wheel-actions {
+    background: rgba(15,20,25,.85);
+}
+
+/* Ergebnis-Box schwebt oben — wird erst nach dem Spin sichtbar */
 body.wheel-fs .wheel-result {
-    margin-top: 0;
-    max-width: 720px;
-    width: 100%;
-    padding: 1.6rem 2rem;
+    position: fixed;
+    top: clamp(1rem, 3vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    width: min(640px, 92vw);
+    z-index: 10;
+    padding: 1.2rem 1.6rem;
+    background: rgba(255,255,255,.93);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+[data-theme="dark"] body.wheel-fs .wheel-result {
+    background: rgba(23,32,38,.93);
 }
 body.wheel-fs .wheel-result-name {
     font-size: clamp(1.6rem, 4vw, 2.6rem);
     line-height: 1.15;
 }
 body.wheel-fs .wheel-result-icon {
-    width: 72px; height: 72px; font-size: 2rem;
+    width: 60px; height: 60px; font-size: 1.7rem; flex-shrink: 0;
 }
 body.wheel-fs .wheel-result-label {
     font-size: .82rem;
+}
+body.wheel-fs .wheel-error {
+    position: fixed;
+    top: clamp(1rem, 3vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(640px, 92vw);
+    z-index: 10;
+    margin: 0;
 }
 body.wheel-fs .btn-mc-lg {
     padding: 1rem 2.4rem;
     font-size: 1.1rem;
 }
-/* Auf kleinen Bildschirmen (Hochkant) Layout vertikaler */
-@@media (max-height: 720px) {
-    body.wheel-fs .wheel-canvas-wrap {
-        max-width: min(55vh, 75vw, 520px);
-    }
+/* Hub und Pointer im Vollbild groesser */
+body.wheel-fs .wheel-hub {
+    width: clamp(64px, 8vmin, 100px);
+    height: clamp(64px, 8vmin, 100px);
+    font-size: clamp(1.3rem, 2vmin, 2rem);
+}
+body.wheel-fs .wheel-pointer {
+    border-left-width: clamp(16px, 2vmin, 24px);
+    border-right-width: clamp(16px, 2vmin, 24px);
+    border-top-width: clamp(28px, 4vmin, 40px);
 }
 
 /* ════════════════════════════ Theme Toggle Button ════════════════════════ */

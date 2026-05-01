@@ -75,4 +75,71 @@ public class EmployeesController : Controller
         await _db.SaveChangesAsync();
         return Json(new { ok = true });
     }
+
+    public record ToggleActiveRequest(int Id, bool IstAktiv);
+
+    /// <summary>Aktiv-Flag direkt aus der Liste umschalten — ohne Modal-Edit.</summary>
+    [HttpPost("ToggleActive")]
+    public async Task<IActionResult> ToggleActive([FromBody] ToggleActiveRequest req)
+    {
+        if (req == null || req.Id <= 0) return Json(new { ok = false, error = "Ungueltige Anfrage." });
+        var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
+        if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
+        e.IstAktiv = req.IstAktiv;
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true });
+    }
+
+    private static readonly string[] AllowedPhotoTypes = { "image/jpeg", "image/png", "image/webp", "image/gif" };
+    private const long MaxPhotoBytes = 5 * 1024 * 1024; // 5 MB
+
+    /// <summary>Foto-Upload (multipart). Max 5 MB, JPEG/PNG/WebP/GIF.</summary>
+    [HttpPost("UploadPhoto")]
+    [RequestSizeLimit(MaxPhotoBytes + 1024 * 1024)]
+    public async Task<IActionResult> UploadPhoto([FromForm] int id, IFormFile? file)
+    {
+        if (id <= 0) return Json(new { ok = false, error = "Ungueltige ID." });
+        if (file == null || file.Length == 0) return Json(new { ok = false, error = "Kein Foto ausgewaehlt." });
+        if (file.Length > MaxPhotoBytes) return Json(new { ok = false, error = "Foto zu gross (max. 5 MB)." });
+        var contentType = (file.ContentType ?? "").ToLowerInvariant();
+        if (!AllowedPhotoTypes.Contains(contentType))
+            return Json(new { ok = false, error = "Nicht unterstuetzter Dateityp. Erlaubt: JPEG, PNG, WebP, GIF." });
+
+        var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == id);
+        if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        e.PhotoBytes = ms.ToArray();
+        e.PhotoMimeType = contentType;
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true });
+    }
+
+    /// <summary>Foto eines Mitarbeiters ausliefern. 1h Browser-Cache.</summary>
+    [HttpGet("Photo/{id:int}")]
+    public async Task<IActionResult> Photo(int id)
+    {
+        var data = await _db.Employees
+            .Where(p => p.Id == id)
+            .Select(p => new { p.PhotoBytes, p.PhotoMimeType })
+            .FirstOrDefaultAsync();
+        if (data?.PhotoBytes == null || data.PhotoBytes.Length == 0) return NotFound();
+        Response.Headers["Cache-Control"] = "private, max-age=3600";
+        return File(data.PhotoBytes, data.PhotoMimeType ?? "image/jpeg");
+    }
+
+    public record DeletePhotoRequest(int Id);
+
+    [HttpPost("DeletePhoto")]
+    public async Task<IActionResult> DeletePhoto([FromBody] DeletePhotoRequest req)
+    {
+        if (req == null || req.Id <= 0) return Json(new { ok = false, error = "Ungueltige Anfrage." });
+        var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
+        if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
+        e.PhotoBytes = null;
+        e.PhotoMimeType = null;
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true });
+    }
 }

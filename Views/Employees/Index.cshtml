@@ -8,6 +8,7 @@
         <div class="app-page-title">👥 Mitarbeitende verwalten</div>
         <div class="app-page-subtitle">
             Wer am Glücksrad teilnehmen darf. Inaktive Personen sind aus dem Pool ausgeschlossen.
+            Klick auf ein Foto, um es hochzuladen oder zu ersetzen.
         </div>
     </div>
     <div>
@@ -22,44 +23,57 @@
         <div class="mc-card-title"><i class="bi bi-people"></i> Liste (@Model.Count)</div>
     </div>
     <div class="mc-card-body">
-        <table class="table" style="width:100%;">
+        <table class="emp-table">
             <thead>
-                <tr style="font-size:.78rem; color:var(--mc-text-muted); text-transform:uppercase; letter-spacing:.08em;">
-                    <th style="text-align:left; padding:.5rem .75rem;">Name</th>
-                    <th style="text-align:left; padding:.5rem .75rem;">Status</th>
-                    <th style="text-align:right; padding:.5rem .75rem;">Aktionen</th>
+                <tr>
+                    <th style="width:64px;">Foto</th>
+                    <th>Name</th>
+                    <th style="width:160px;">Am Rad teilnehmen</th>
+                    <th style="width:160px; text-align:right;">Aktionen</th>
                 </tr>
             </thead>
             <tbody id="empBody">
                 @if (Model.Count == 0)
                 {
-                    <tr><td colspan="3"><div class="empty-state"><i class="bi bi-person-plus"></i><div>Noch keine Mitarbeitenden angelegt.</div></div></td></tr>
+                    <tr><td colspan="4"><div class="empty-state"><i class="bi bi-person-plus"></i><div>Noch keine Mitarbeitenden angelegt.</div></div></td></tr>
                 }
                 else
                 {
                     @foreach (var e in Model)
                     {
-                        <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-nachname="@e.Nachname" data-aktiv="@(e.IstAktiv ? "1" : "0")"
-                            style="border-bottom: 1px solid var(--mc-border);">
-                            <td style="padding:.7rem .75rem; font-weight:600; color:var(--mc-text-dark);">
-                                @e.Vorname @e.Nachname
+                        var initials = (e.Vorname.Length > 0 ? e.Vorname[0].ToString() : "")
+                                       + (e.Nachname.Length > 0 ? e.Nachname[0].ToString() : "");
+                        var hasPhoto = e.PhotoBytes != null && e.PhotoBytes.Length > 0;
+                        <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-nachname="@e.Nachname" data-aktiv="@(e.IstAktiv ? "1" : "0")">
+                            <td>
+                                <div class="emp-avatar" onclick="triggerPhotoUpload(@e.Id)" title="Foto hochladen / ersetzen">
+                                    @if (hasPhoto)
+                                    {
+                                        <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id" alt="@e.Vorname @e.Nachname" />
+                                    }
+                                    else
+                                    {
+                                        <span class="emp-avatar-initials" id="emp-photo-@e.Id">@initials.ToUpper()</span>
+                                    }
+                                    <div class="emp-avatar-overlay"><i class="bi bi-camera"></i></div>
+                                </div>
                             </td>
-                            <td style="padding:.7rem .75rem;">
-                                @if (e.IstAktiv)
-                                {
-                                    <span class="badge-free">Aktiv</span>
-                                }
-                                else
-                                {
-                                    <span class="badge-locked">Inaktiv</span>
-                                }
+                            <td class="emp-name-cell">
+                                <span class="emp-name">@e.Vorname @e.Nachname</span>
                             </td>
-                            <td style="padding:.7rem .75rem; text-align:right;">
-                                <button type="button" class="btn-mc btn-mc-ghost" style="padding:.35rem .8rem; font-size:.82rem;" onclick="openEdit(@e.Id)">
+                            <td>
+                                <button type="button"
+                                        class="toggle-switch @(e.IstAktiv ? "on" : "")"
+                                        id="emp-active-@e.Id"
+                                        onclick="onToggleActive(@e.Id, this)"
+                                        title="Am Glücksrad teilnehmen / nicht teilnehmen"></button>
+                            </td>
+                            <td style="text-align:right;">
+                                <button type="button" class="btn-mc btn-mc-ghost emp-action-btn" onclick="openEdit(@e.Id)">
                                     <i class="bi bi-pencil"></i> Bearbeiten
                                 </button>
-                                <button type="button" class="btn-mc btn-mc-danger" style="padding:.35rem .8rem; font-size:.82rem;" onclick="onDelete(@e.Id, '@e.Vorname @e.Nachname')">
-                                    <i class="bi bi-trash"></i> Löschen
+                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname @e.Nachname')">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </td>
                         </tr>
@@ -69,6 +83,9 @@
         </table>
     </div>
 </div>
+
+<!-- Verstecktes File-Input fuer Foto-Upload aus der Liste -->
+<input type="file" id="empPhotoFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;" />
 
 <!-- ────────── Modal: Mitarbeiter löschen (im gleichen Stil wie Verlauf) ────────── -->
 <div class="modal-overlay" id="empDeleteModal" onclick="if(event.target===this) closeEmpDeleteModal();">
@@ -142,6 +159,7 @@
 
 @section Scripts {
 <script>
+    // ── Edit/Create Modal ───────────────────────────────────────────────
     var empAktivState = true;
     document.getElementById('empAktivSwitch').addEventListener('click', function () {
         empAktivState = !empAktivState;
@@ -210,6 +228,76 @@
         }
     }
 
+    // ── Aktiv-Toggle inline (in der Liste) ───────────────────────────────
+    async function onToggleActive(id, btn) {
+        var newState = !btn.classList.contains('on');
+        btn.classList.toggle('on', newState);
+        btn.disabled = true;
+        try {
+            var res = await fetch('/Employees/ToggleActive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, istAktiv: newState })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                btn.classList.toggle('on', !newState); // revert
+                alert(data.error || 'Änderung fehlgeschlagen.');
+            } else {
+                // Row-Daten aktualisieren, damit Edit-Modal den frischen Stand zeigt
+                var row = document.getElementById('emp-row-' + id);
+                if (row) row.dataset.aktiv = newState ? '1' : '0';
+            }
+        } catch (e) {
+            btn.classList.toggle('on', !newState);
+            alert('Verbindungsfehler: ' + e.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ── Foto-Upload via Avatar-Klick ─────────────────────────────────────
+    var pendingPhotoEmpId = null;
+
+    function triggerPhotoUpload(id) {
+        pendingPhotoEmpId = id;
+        var input = document.getElementById('empPhotoFileInput');
+        input.value = '';
+        input.click();
+    }
+
+    document.getElementById('empPhotoFileInput').addEventListener('change', async function (e) {
+        var id = pendingPhotoEmpId;
+        pendingPhotoEmpId = null;
+        if (!id || !e.target.files || e.target.files.length === 0) return;
+        var file = e.target.files[0];
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Foto zu groß (max. 5 MB).');
+            return;
+        }
+        var fd = new FormData();
+        fd.append('id', id);
+        fd.append('file', file);
+        try {
+            var res = await fetch('/Employees/UploadPhoto', { method: 'POST', body: fd });
+            var data = await res.json();
+            if (!data.ok) {
+                alert(data.error || 'Upload fehlgeschlagen.');
+                return;
+            }
+            // Avatar im DOM aktualisieren — wenn vorher Initialen, durch <img> ersetzen
+            var holder = document.getElementById('emp-photo-' + id);
+            if (holder && holder.tagName === 'IMG') {
+                holder.src = '/Employees/Photo/' + id + '?v=' + Date.now();
+            } else {
+                location.reload();
+            }
+        } catch (e) {
+            alert('Verbindungsfehler: ' + e.message);
+        }
+    });
+
+    // ── Mitarbeiter loeschen (Modal) ─────────────────────────────────────
     var pendingEmpDeleteId = null;
 
     function onDelete(id, name) {

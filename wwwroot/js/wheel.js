@@ -183,11 +183,15 @@
             ctx.textBaseline = 'middle';
             ctx.fillStyle = isLight(color) ? '#1a202c' : '#ffffff';
             var name = slices[i].anzeigename;
-            var fontSize = slices.length > 14 ? 11 : (slices.length > 10 ? 12.5 : 14);
+            // Schriftgroesse skaliert mit Canvas-Groesse (Faktor relativ zu 560px Basis),
+            // damit Text auch auf dem 1100px-Vollbild-Rad gut lesbar ist.
+            var sizeFactor = Math.max(1, size / 560);
+            var baseFontSize = slices.length > 18 ? 10 : (slices.length > 14 ? 11.5 : (slices.length > 10 ? 13 : 15));
+            var fontSize = Math.round(baseFontSize * sizeFactor);
             ctx.font = '600 ' + fontSize + 'px Inter, system-ui, sans-serif';
             // Locked-Marker
             var prefix = slices[i].gesperrt ? '🔒 ' : '';
-            ctx.fillText(prefix + truncate(name, 20), radius - 14, 4);
+            ctx.fillText(prefix + truncate(name, 22), radius - Math.round(14 * sizeFactor), 4);
             ctx.restore();
         }
 
@@ -339,6 +343,12 @@
         animateSpinTo(idx, function () {
             state.spinning = false;
             document.getElementById('btnSpin').disabled = false;
+            // Defensive: Confirm/Respin explizit aktiv setzen — nichts darf
+            // aus einem vorherigen Spin-Zyklus haengen bleiben.
+            var btnConfirm = document.getElementById('btnConfirm');
+            var btnRespin = document.getElementById('btnRespin');
+            if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen'; }
+            if (btnRespin) { btnRespin.disabled = false; }
             state.winner = winner;
             showResult(winner);
         });
@@ -353,10 +363,10 @@
         // Wir wollen, dass dieser Punkt unter den Pointer (bei -90°) rutscht
         // — also rotation = -(idx*sliceAngle + sliceAngle/2).
         var targetAngleDeg = -(sliceIdx * sliceAngleDeg + sliceAngleDeg / 2);
-        // Mehr Umdrehungen fuer 15-Sekunden-Spin: 12..16 volle Drehungen.
-        // Mit dem starken Ease-out passieren die meisten Drehungen frueh,
-        // danach laeuft das Rad sichtbar aus.
-        var spins = 12 + Math.floor(Math.random() * 5); // 12..16
+        // 18 s Spin → 14..18 volle Drehungen. Mit dem starken Ease-out
+        // passieren die meisten Drehungen frueh, danach laeuft das Rad
+        // sichtbar aus.
+        var spins = 14 + Math.floor(Math.random() * 5); // 14..18
         var finalRot = state.currentRotation;
         var base = Math.ceil((finalRot + 360) / 360) * 360;
         var newRot = base + spins * 360 + targetAngleDeg;
@@ -364,8 +374,8 @@
         state.currentRotation = newRot;
         canvas.style.transform = 'rotate(' + newRot + 'deg)';
 
-        // CSS-Transition steht in dispatcher.css (15s cubic-bezier).
-        setTimeout(onDone, 15100);
+        // CSS-Transition steht in dispatcher.css (18s cubic-bezier).
+        setTimeout(onDone, 18100);
     }
 
     function showResult(winner) {
@@ -409,8 +419,12 @@
     function onRespin() {
         if (state.spinning) return;
         hideResult();
-        // Direkt nochmal drehen
-        onSpin();
+        // Kleiner setTimeout schiebt den Spin-Start auf den naechsten Tick —
+        // das gibt dem DOM Zeit, hideResult-Aenderungen anzuwenden, bevor
+        // onSpin den Zustand kippt. In der Praxis verhindert das eine
+        // seltene Race-Condition, bei der actionsAfterSpin scheinbar
+        // sichtbar bleibt obwohl der Spin laeuft.
+        setTimeout(onSpin, 30);
     }
 
     async function onConfirm() {
@@ -471,9 +485,19 @@
         document.getElementById('successModal').classList.remove('open');
         // Erst jetzt zurueck in die Normalansicht — Vollbild verlassen,
         // Result/Spin-Buttons resetten, Status-Panel mit den frischen
-        // Daten neu rendern.
+        // Daten neu rendern. Defensive: alle Spin-bezogenen States hart
+        // zuruecksetzen, damit der Drehen-Button beim naechsten Mal
+        // garantiert wieder klickbar ist.
         exitFullscreen();
         hideResult();
+        state.spinning = false;
+        state.winner = null;
+        var btnSpin = document.getElementById('btnSpin');
+        var btnConfirm = document.getElementById('btnConfirm');
+        var btnRespin = document.getElementById('btnRespin');
+        if (btnSpin) { btnSpin.disabled = false; btnSpin.style.display = ''; }
+        if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen'; }
+        if (btnRespin) { btnRespin.disabled = false; }
         drawWheel();
         updateStatusPanel();
     };

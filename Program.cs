@@ -110,6 +110,11 @@ using (var scope = app.Services.CreateScope())
 
         await db.Database.EnsureCreatedAsync();
 
+        // Schema-Heilung: nachtraeglich hinzugefuegte Spalten in bereits
+        // bestehenden DBs ergaenzen (EnsureCreated migriert solche
+        // Aenderungen nicht). Foto-Spalten fuer Employees ab V1.1.
+        await TryEnsureColumnsAsync(db, log);
+
         if (!await db.Users.AnyAsync())
         {
             db.Users.AddRange(
@@ -155,6 +160,34 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static async Task TryEnsureColumnsAsync(AppDbContext db, ILogger log)
+{
+    var provider = db.Database.ProviderName ?? "";
+    var isPg = provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+
+    var pgStmts = new[]
+    {
+        "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoBytes\" bytea NULL",
+        "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoMimeType\" varchar(50) NULL"
+    };
+    var sqliteStmts = new[]
+    {
+        "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoBytes\" BLOB NULL",
+        "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoMimeType\" TEXT NULL"
+    };
+
+    foreach (var sql in isPg ? pgStmts : sqliteStmts)
+    {
+        try { await db.Database.ExecuteSqlRawAsync(sql); }
+        catch (Exception ex)
+        {
+            // SQLite kennt kein IF NOT EXISTS — "duplicate column" ignorieren
+            if (!isPg && ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase)) continue;
+            log.LogDebug(ex, "Schema-Heilung uebersprungen fuer: {Sql}", sql);
+        }
+    }
+}
 
 static string ParseRailwayPostgresUrl(string url)
 {
