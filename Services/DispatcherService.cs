@@ -90,10 +90,11 @@ public class DispatcherService
     }
 
     /// <summary>
-    /// Persistiert eine bestaetigte Auswahl mit korrekter Sperr-Berechnung.
-    /// Wenn der Mitarbeiter aktuell noch gesperrt ist (nur moeglich bei
-    /// blacklistIgnoriert=true), wird die Restsperre auf die neuen 21 Tage
-    /// aufgeschlagen — d. h. SperrBisUtc = max(jetzt, alteSperre) + 21 Tage.
+    /// Persistiert eine bestaetigte Auswahl. Jede Bestaetigung erzeugt einen
+    /// eigenen Verlaufseintrag mit frischer 21-Tage-Sperre — auch wenn die
+    /// Person noch von einer fruehren Auswahl gesperrt war (Override-Fall).
+    /// Mehrere Eintraege fuer dieselbe Person sind erlaubt; die effektive
+    /// Sperre ergibt sich aus dem Eintrag mit dem juengsten SperrBisUtc.
     /// </summary>
     public async Task<ConfirmResult> ConfirmAsync(int employeeId, bool blacklistIgnoriert, CancellationToken ct = default)
     {
@@ -102,28 +103,35 @@ public class DispatcherService
             return new ConfirmResult(false, "Mitarbeiter:in nicht gefunden oder inaktiv.", null);
 
         var now = DateTime.UtcNow;
+
+        // Aktuell laufende Sperre (falls vorhanden) — nur fuer den Server-Check
+        // bei fehlendem Override und fuer Audit-Logging benoetigt.
         var alteSperreUtc = await _db.DispatcherSelections
             .Where(s => s.EmployeeId == employeeId)
             .OrderByDescending(s => s.SperrBisUtc)
             .Select(s => (DateTime?)s.SperrBisUtc)
             .FirstOrDefaultAsync(ct);
 
-        var basis = (alteSperreUtc.HasValue && alteSperreUtc.Value > now) ? alteSperreUtc.Value : now;
-        var neueSperreUtc = basis.AddDays(SperreTage);
-        var restTage = (alteSperreUtc.HasValue && alteSperreUtc.Value > now)
-            ? (int)Math.Ceiling((alteSperreUtc.Value - now).TotalDays)
+        var nochGesperrt = alteSperreUtc.HasValue && alteSperreUtc.Value > now;
+        var restTageVorher = nochGesperrt
+            ? (int)Math.Ceiling((alteSperreUtc!.Value - now).TotalDays)
             : 0;
 
         // Sicherheitscheck: ohne Override darf ein gesperrter Mitarbeiter nicht
         // bestaetigt werden (Frontend sollte das schon verhindern, aber server-
         // seitig hart durchsetzen).
-        if (restTage > 0 && !blacklistIgnoriert)
+        if (nochGesperrt && !blacklistIgnoriert)
         {
             return new ConfirmResult(false,
-                $"{employee.Anzeigename} ist noch {restTage} Tag(e) gesperrt. " +
+                $"{employee.Anzeigename} ist noch {restTageVorher} Tag(e) gesperrt. " +
                 "Bitte aktiviere 'Sperrliste ignorieren', wenn du diese Person trotzdem auswaehlen moechtest.",
                 null);
         }
+
+        // Frische 21-Tage-Sperre — unabhaengig davon, ob die Person zuvor noch
+        // gesperrt war. Override-Auswahlen erzeugen einen ZUSAETZLICHEN Eintrag
+        // im Verlauf; alte Eintraege bleiben fuer die Historie erhalten.
+        var neueSperreUtc = now.AddDays(SperreTage);
 
         var auswahl = new DispatcherSelection
         {
@@ -131,21 +139,21 @@ public class DispatcherService
             BestaetigtUtc = now,
             SperrBisUtc = neueSperreUtc,
             BlacklistIgnoriert = blacklistIgnoriert,
-            RestTageUebernommen = restTage
+            RestTageUebernommen = 0
         };
         _db.DispatcherSelections.Add(auswahl);
         await _db.SaveChangesAsync(ct);
 
         _log.LogInformation(
-            "Dispatcher bestaetigt: {Name} (Id={Id}), Override={Override}, Rest={Rest} → SperrBis {SperrBis:O}",
-            employee.Anzeigename, employee.Id, blacklistIgnoriert, restTage, neueSperreUtc);
+            "Dispatcher bestaetigt: {Name} (Id={Id}), Override={Override}, RestVorher={Rest} → SperrBis {SperrBis:O}",
+            employee.Anzeigename, employee.Id, blacklistIgnoriert, restTageVorher, neueSperreUtc);
 
         return new ConfirmResult(true, null, new ConfirmInfo(
             EmployeeId: employee.Id,
             Anzeigename: employee.Anzeigename,
             BestaetigtUtc: now,
             SperrBisUtc: neueSperreUtc,
-            RestTageUebernommen: restTage,
+            RestTageUebernommen: 0,
             BlacklistIgnoriert: blacklistIgnoriert));
     }
 

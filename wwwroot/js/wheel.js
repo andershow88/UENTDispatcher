@@ -327,7 +327,8 @@
 
         if (winner.gesperrt) {
             hintEl.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
-                winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. Bei Bestätigung wird die Restzeit auf die neuen 21 Tage aufgeschlagen.';
+                winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. ' +
+                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische 21 Tage gesetzt.';
         } else {
             hintEl.textContent = 'Bitte bestätigen, um die Auswahl als Dispatcher der Woche festzuhalten.';
         }
@@ -407,11 +408,7 @@
         document.getElementById('successName').textContent = info.anzeigename;
         var until = new Date(info.sperrBisUtc);
         var fmt = until.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        var meta = 'Gesperrt bis ' + fmt;
-        if (info.restTageUebernommen > 0) {
-            meta += ' (inkl. ' + info.restTageUebernommen + ' übernommener Tage durch Override)';
-        }
-        document.getElementById('successMeta').textContent = meta;
+        document.getElementById('successMeta').textContent = 'Gesperrt bis ' + fmt + ' (21 Tage)';
         modal.classList.add('open');
     }
 

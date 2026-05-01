@@ -54,10 +54,13 @@ UENTDispatcher/
 
 ## Sperrlogik
 
-- Bestätigte Auswahl → `SperrBisUtc = max(jetzt, alteSperreUtc) + 21 Tage`
-- Bei Override (Sperrliste ignoriert): laufende Restsperre wird kumuliert
-- Beispiel: Jonas hat noch 7 Tage → Override + Bestätigung → neue Sperre = 7 + 21 = **28 Tage**
-- Reine Spins ohne Bestätigung werden **nicht** persistiert und lösen **keine** Sperre aus
+- Bestätigte Auswahl → `SperrBisUtc = jetzt + 21 Tage` (immer frisch, keine Kumulation)
+- Tage = 24-Stunden-Blöcke; Restdauer wird bei Anzeige aufgerundet (`Math.Ceiling`)
+- Bei Override (Sperrliste ignoriert): gesperrte Person darf erneut ausgewählt werden →
+  **neuer Verlaufseintrag**, alte Einträge bleiben unverändert. Die effektive Sperre
+  ergibt sich aus dem Eintrag mit dem jüngsten `SperrBisUtc` (Max-Aggregat).
+- **Mehrfach-Einträge derselben Person im Verlauf sind erlaubt** und werden separat gerendert.
+- Reine Spins ohne Bestätigung werden **nicht** persistiert und lösen **keine** Sperre aus.
 
 ## Lokal starten
 
@@ -93,8 +96,8 @@ Ohne Postgres-Plugin liegt die DB im Container-Filesystem und ist bei jedem Depl
 ✅ Animiertes Wheel mit Spin-Animation (Canvas + CSS-Transition)
 ✅ Bestätigung mit „Bestätigen" / „Erneut drehen"-Trennung
 ✅ 21-Tage-Sperre + Anzeige Verfügbar/Gesperrt
-✅ Override-Schalter mit kumulativer Sperrzeit
-✅ Verlaufs-Timeline mit Tags für Override und Resttag-Übernahme
+✅ Override-Schalter erlaubt Mehrfach-Auswahl gesperrter Personen mit frischer 21-Tage-Sperre
+✅ Verlaufs-Timeline mit Override-Tag, mehrere Einträge derselben Person erlaubt
 ✅ Mitarbeitenden-CRUD
 ✅ Modal-Bestätigung mit Konfetti-Animation
 ✅ Bank-CI (Petrol/Gold) im Look der Merkur Privatbank

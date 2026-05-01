@@ -60,7 +60,7 @@
                 <div class="toggle-text-main"><i class="bi bi-shield-exclamation"></i> Sperrliste ignorieren</div>
                 <div class="toggle-text-hint">
                     Aktiviert → auch gesperrte Personen drehen mit. Wird eine gesperrte Person bestätigt,
-                    werden ihre verbleibenden Sperrtage auf die neuen 21 Tage <strong>aufgeschlagen</strong>.
+                    entsteht ein <strong>neuer Eintrag</strong> im Verlauf und die Sperre wird auf <strong>frische 21 Tage</strong> gesetzt.
                 </div>
             </div>
             <button type="button" id="toggleBlacklist" class="toggle-switch" aria-label="Sperrliste ignorieren"></button>
@@ -96,8 +96,9 @@
             <div class="mc-card-body" style="font-size:.85rem; color: var(--mc-text);">
                 <ul style="padding-left:1.1rem; margin:0;">
                     <li>Eine Auswahl gilt erst nach Klick auf <strong>Bestätigen</strong>.</li>
-                    <li>Bestätigte Personen sind <strong>21 Tage gesperrt</strong>.</li>
-                    <li>Bei aktiver „Sperrliste ignorieren"-Option und Override-Auswahl wird die Restsperre kumuliert (z. B. 7 + 21 = 28 Tage).</li>
+                    <li>Bestätigte Personen sind <strong>21 Tage gesperrt</strong> (24-Stunden-Blöcke ab Bestätigung).</li>
+                    <li>Bei „Sperrliste ignorieren": gesperrte Personen können erneut ausgelost werden — Bestätigung erzeugt einen <strong>weiteren Verlaufseintrag</strong> und setzt die Sperre auf frische 21 Tage zurück.</li>
+                    <li>Mehrfach-Einträge derselben Person im Verlauf sind erlaubt und gewollt.</li>
                     <li>Mitarbeitende pflegen unter <a asp-controller="Employees" asp-action="Index">Mitarbeitende</a>.</li>
                 </ul>
             </div>
