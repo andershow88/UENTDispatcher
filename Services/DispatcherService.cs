@@ -157,6 +157,40 @@ public class DispatcherService
             BlacklistIgnoriert: blacklistIgnoriert));
     }
 
+    /// <summary>
+    /// Loescht ALLE bestaetigten Auswahlen aus der DB. Damit ist auch jede
+    /// laufende Sperre aufgehoben (Sperrstatus wird aus DispatcherSelections
+    /// abgeleitet). Wird nur fuer Admin freigegeben.
+    /// </summary>
+    public async Task<int> ClearLogAsync(CancellationToken ct = default)
+    {
+        var count = await _db.DispatcherSelections.CountAsync(ct);
+        if (count == 0) return 0;
+        await _db.DispatcherSelections.ExecuteDeleteAsync(ct);
+        _log.LogWarning("Dispatcher-Verlauf vollstaendig geloescht: {Count} Eintraege entfernt — alle Sperren sind aufgehoben.", count);
+        return count;
+    }
+
+    /// <summary>
+    /// Loescht einen einzelnen Verlaufseintrag. Wenn dadurch die zuletzt
+    /// gespeicherte Sperre einer Person entfaellt, wird automatisch wieder
+    /// auf den (ggf. juengsten verbleibenden) Eintrag fuer den Sperrstatus
+    /// zurueckgegriffen.
+    /// </summary>
+    public async Task<DeleteEntryResult> DeleteEntryAsync(int id, CancellationToken ct = default)
+    {
+        var entry = await _db.DispatcherSelections
+            .Include(s => s.Employee)
+            .FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (entry == null)
+            return new DeleteEntryResult(false, "Eintrag nicht gefunden.");
+        var name = entry.Employee?.Vorname + " " + entry.Employee?.Nachname;
+        _db.DispatcherSelections.Remove(entry);
+        await _db.SaveChangesAsync(ct);
+        _log.LogWarning("Verlaufseintrag {Id} ({Name}, {Bestaetigt:O}) geloescht.", id, name, entry.BestaetigtUtc);
+        return new DeleteEntryResult(true, null);
+    }
+
     /// <summary>Bisherige bestaetigte Auswahlen — neueste zuerst.</summary>
     public async Task<List<LogEintrag>> ListLogAsync(int max = 200, CancellationToken ct = default)
     {
@@ -209,3 +243,5 @@ public record LogEintrag(
     DateTime SperrBisUtc,
     bool BlacklistIgnoriert,
     int RestTageUebernommen);
+
+public record DeleteEntryResult(bool Erfolgreich, string? Fehler);

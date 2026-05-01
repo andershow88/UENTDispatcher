@@ -2,6 +2,7 @@
 @using UENTDispatcher.Models
 @{
     ViewData["Title"] = "Verlauf";
+    var istAdmin = User.IsInRole("Admin");
 }
 
 <div class="app-page-header">
@@ -9,10 +10,16 @@
         <div class="app-page-title">📜 Verlauf der Auslosungen</div>
         <div class="app-page-subtitle">Alle bestätigten Dispatcher-Auswahlen — neueste zuerst.</div>
     </div>
-    <div>
+    <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
         <a asp-controller="Home" asp-action="Index" class="btn-mc btn-mc-primary">
             <i class="bi bi-bullseye"></i> Zum Glücksrad
         </a>
+        @if (istAdmin && Model.Count > 0)
+        {
+            <button type="button" class="btn-mc btn-mc-danger" onclick="openClearModal()">
+                <i class="bi bi-trash"></i> Verlauf löschen
+            </button>
+        }
     </div>
 </div>
 
@@ -39,7 +46,11 @@
                     var jetzt = DateTime.UtcNow;
                     var nochGesperrt = e.SperrBisUtc > jetzt;
                     var restTage = nochGesperrt ? Math.Max(1, (int)Math.Ceiling((e.SperrBisUtc - jetzt).TotalDays)) : 0;
-                    <div class="timeline-item @(e.BlacklistIgnoriert ? "override" : "")">
+                    <div class="timeline-item @(e.BlacklistIgnoriert ? "override" : "")" id="entry-@e.Id">
+                        <button type="button" class="timeline-delete" title="Diesen Eintrag löschen"
+                                onclick="onDeleteEntry(@e.Id, '@(e.Anzeigename.Replace("'", "\\'"))', '@bestaetigtLokal.ToString("dd.MM.yyyy HH:mm")')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
                         <div class="timeline-date">
                             Dispatcher ausgewählt am @bestaetigtLokal.ToString("dddd, dd.MM.yyyy 'um' HH:mm 'Uhr'", new System.Globalization.CultureInfo("de-DE"))
                         </div>
@@ -71,3 +82,164 @@
         }
     </div>
 </div>
+
+<!-- ────────── Modal: Gesamten Verlauf löschen (Admin) ────────── -->
+@if (istAdmin)
+{
+    <div class="modal-overlay" id="clearModal" onclick="if(event.target===this) closeClearModal();">
+        <div class="modal-card">
+            <div class="modal-head danger">
+                <div class="icon-circle"><i class="bi bi-exclamation-triangle"></i></div>
+                <div>
+                    <div class="modal-title">Verlauf wirklich vollständig löschen?</div>
+                    <div class="modal-subtitle">Diese Aktion kann nicht rückgängig gemacht werden.</div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p style="margin-top:0;">
+                    Dadurch werden <strong>alle @Model.Count Verlaufseinträge</strong> aus der Datenbank entfernt
+                    und <strong>alle aktuell laufenden Sperrfristen aufgehoben</strong>.
+                </p>
+                <p style="font-size:.86rem; color:var(--mc-text-muted);">
+                    Mitarbeitende selbst werden nicht gelöscht — nur ihre Auswahl-Historie und damit verbunden ihr Sperrstatus.
+                </p>
+                <div class="login-error" id="clearError" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-mc btn-mc-ghost" onclick="closeClearModal()">Abbrechen</button>
+                <button type="button" class="btn-mc btn-mc-danger" id="confirmClearBtn" onclick="performClearAll()">
+                    <i class="bi bi-trash"></i> Endgültig löschen
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ────────── Modal: Einzel-Eintrag löschen ────────── -->
+<div class="modal-overlay" id="deleteEntryModal" onclick="if(event.target===this) closeDeleteEntryModal();">
+    <div class="modal-card">
+        <div class="modal-head danger">
+            <div class="icon-circle"><i class="bi bi-trash"></i></div>
+            <div>
+                <div class="modal-title">Eintrag löschen?</div>
+                <div class="modal-subtitle">Aus dem Verlauf entfernen — kann nicht rückgängig gemacht werden.</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-winner">
+                <div class="confirm-winner-name" id="delEntryName">—</div>
+                <div class="confirm-winner-meta" id="delEntryMeta">—</div>
+            </div>
+            <p style="font-size:.86rem; color:var(--mc-text-muted); margin-bottom:0;">
+                Falls dieser Eintrag aktuell die laufende Sperre der Person bestimmt,
+                wird die Sperre damit aufgehoben oder fällt auf einen früheren Eintrag zurück.
+            </p>
+            <div class="login-error" id="delEntryError" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-mc btn-mc-ghost" onclick="closeDeleteEntryModal()">Abbrechen</button>
+            <button type="button" class="btn-mc btn-mc-danger" id="delEntryConfirmBtn" onclick="performDeleteEntry()">
+                <i class="bi bi-x-lg"></i> Eintrag löschen
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Bulk-Delete (Admin-only) ─────────────────────────────────
+    function openClearModal() { document.getElementById('clearModal').classList.add('open'); }
+    function closeClearModal() { document.getElementById('clearModal').classList.remove('open'); }
+    async function performClearAll() {
+        var btn = document.getElementById('confirmClearBtn');
+        var err = document.getElementById('clearError');
+        err.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Lösche…';
+        try {
+            var res = await fetch('/Dispatcher/ClearLog', { method: 'POST' });
+            if (res.status === 401 || res.status === 403) {
+                err.textContent = 'Keine Berechtigung. Nur Admins dürfen den Verlauf löschen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
+                return;
+            }
+            var data = await res.json();
+            if (data.ok) {
+                location.reload();
+            } else {
+                err.textContent = data.error || 'Löschen fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
+            }
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
+        }
+    }
+
+    // ── Einzel-Delete ────────────────────────────────────────────
+    var pendingDeleteId = null;
+
+    function onDeleteEntry(id, name, dateStr) {
+        pendingDeleteId = id;
+        document.getElementById('delEntryName').textContent = name;
+        document.getElementById('delEntryMeta').textContent = 'Bestätigt am ' + dateStr;
+        document.getElementById('delEntryError').style.display = 'none';
+        document.getElementById('deleteEntryModal').classList.add('open');
+    }
+    function closeDeleteEntryModal() {
+        document.getElementById('deleteEntryModal').classList.remove('open');
+        pendingDeleteId = null;
+    }
+    async function performDeleteEntry() {
+        if (!pendingDeleteId) return;
+        var btn = document.getElementById('delEntryConfirmBtn');
+        var err = document.getElementById('delEntryError');
+        err.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Lösche…';
+        try {
+            var res = await fetch('/Dispatcher/DeleteEntry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: pendingDeleteId })
+            });
+            var data = await res.json();
+            if (data.ok) {
+                // Zeile sanft ausblenden, dann Reload für aktualisierte Counter
+                var row = document.getElementById('entry-' + pendingDeleteId);
+                if (row) {
+                    row.style.transition = 'opacity .25s, transform .25s';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(20px)';
+                    setTimeout(() => location.reload(), 280);
+                } else {
+                    location.reload();
+                }
+            } else {
+                err.textContent = data.error || 'Löschen fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-x-lg"></i> Eintrag löschen';
+            }
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-x-lg"></i> Eintrag löschen';
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeDeleteEntryModal();
+            @if (istAdmin) { <text>closeClearModal();</text> }
+        }
+    });
+</script>
+}

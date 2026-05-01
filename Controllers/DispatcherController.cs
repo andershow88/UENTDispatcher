@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UENTDispatcher.Services;
 
@@ -87,5 +88,34 @@ public class DispatcherController : Controller
     {
         var entries = await _svc.ListLogAsync();
         return View(entries);
+    }
+
+    /// <summary>
+    /// Loescht den gesamten Verlauf. Achtung: hebt damit auch alle aktuellen
+    /// Sperren auf. Reserviert fuer Admins. Manueller Role-Check statt
+    /// [Authorize(Roles=)], damit Cookie-Auth keinen 302-Redirect produziert.
+    /// </summary>
+    [HttpPost("ClearLog")]
+    public async Task<IActionResult> ClearLog()
+    {
+        if (!User.IsInRole("Admin"))
+            return Json(new { ok = false, error = "Nur Admins duerfen den Verlauf loeschen." });
+        var count = await _svc.ClearLogAsync();
+        return Json(new { ok = true, geloescht = count });
+    }
+
+    public record DeleteEntryRequest(int Id);
+
+    /// <summary>
+    /// Loescht einen einzelnen Verlaufseintrag. Hebt damit ggf. die durch
+    /// diesen Eintrag bestimmte Sperre auf, falls er der juengste war.
+    /// </summary>
+    [HttpPost("DeleteEntry")]
+    public async Task<IActionResult> DeleteEntry([FromBody] DeleteEntryRequest req)
+    {
+        if (req == null || req.Id <= 0)
+            return Json(new { ok = false, error = "Ungueltige Anfrage." });
+        var result = await _svc.DeleteEntryAsync(req.Id);
+        return Json(new { ok = result.Erfolgreich, error = result.Fehler });
     }
 }
