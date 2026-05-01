@@ -841,7 +841,8 @@ a:hover { color: var(--mc-petrol-dark); }
 }
 
 /* ════════════════════════════ Logo-Regen (Login-Seite) ════════════════════
-   Kleine Merkur-Logos fallen rotierend von oben durch den Bildschirm. */
+   Merkur-Logos fallen rotierend von oben durch den Bildschirm — praesent,
+   nicht zu dezent: kraeftiger Schatten + sanfter Goldglow. */
 .logo-rain {
     position: fixed;
     top: -120px;
@@ -850,7 +851,9 @@ a:hover { color: var(--mc-petrol-dark); }
     -webkit-user-drag: none;
     z-index: 1;
     animation: logoRainFall linear forwards;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,.45));
+    filter:
+        drop-shadow(0 6px 14px rgba(0,0,0,.55))
+        drop-shadow(0 0 8px rgba(200,169,110,.25));
 }
 @keyframes logoRainFall {
     0%   { transform: translateY(0) rotate(0deg); }

@@ -124,33 +124,43 @@
         }
     }
 
-    // ── Logo-Regen: kleine Merkur-Logos fallen rotierend ─────────────────
-    function spawnLogoDrop() {
-        if (document.querySelectorAll('.logo-rain').length > 40) return;
+    // ── Logo-Regen: Merkur-Logos fallen rotierend ─────────────────────────
+    // Praesentere Variante: groesser (bis 100 px), opaker (bis 0.5),
+    // dichter (Spawn-Rate ~210 ms, DOM-Cap 80) und sofort beim Page-Load
+    // bereits mit Logos im halben Fall, damit der Regen instantly da ist.
+    function spawnLogoDrop(opts) {
+        opts = opts || {};
+        if (!opts.force && document.querySelectorAll('.logo-rain').length > 80) return;
         var img = document.createElement('img');
         img.src = '/images/merkur-logo.svg';
         img.alt = '';
         img.draggable = false;
         img.className = 'logo-rain';
-        var size = 22 + Math.floor(Math.random() * 38);     // 22..60 px
-        var duration = 9 + Math.random() * 8;                // 9..17 s
-        var opacity = 0.07 + Math.random() * 0.18;           // 0.07..0.25
-        var rot = 360 + Math.floor(Math.random() * 1080);    // 360..1440 deg
+        var size = 36 + Math.floor(Math.random() * 68);      // 36..104 px (war 22..60)
+        var duration = 8 + Math.random() * 8;                 // 8..16 s
+        var opacity = 0.18 + Math.random() * 0.32;            // 0.18..0.50 (war 0.07..0.25)
+        var rot = 360 + Math.floor(Math.random() * 1440);     // 360..1800 deg (mehr Spin)
         var direction = Math.random() < 0.5 ? -1 : 1;
         img.style.left = (Math.random() * 100) + 'vw';
         img.style.width = size + 'px';
         img.style.opacity = opacity;
         img.style.animationDuration = duration + 's';
         img.style.setProperty('--rain-rot', (rot * direction) + 'deg');
+        // Optional: Negativer Animations-Delay → Element startet mitten im Fall.
+        // Wird beim initialen Schwung genutzt, damit der Schirm sofort gefuellt ist.
+        if (opts.preStarted) {
+            img.style.animationDelay = '-' + (Math.random() * duration * 0.85) + 's';
+        }
         document.body.appendChild(img);
         setTimeout(function () { if (img.parentNode) img.remove(); }, duration * 1000 + 300);
     }
-    // Initialer Schwung, damit's nicht leer wirkt
-    for (var i = 0; i < 8; i++) {
-        setTimeout(spawnLogoDrop, i * 250);
+    // Sofortiger voller Regen — 35 Logos mit negativem Delay verteilen sich
+    // ueber den gesamten Bildschirm beim Seiten-Load.
+    for (var i = 0; i < 35; i++) {
+        spawnLogoDrop({ preStarted: true, force: true });
     }
-    // Konstanter Nachschub
-    setInterval(spawnLogoDrop, 380);
+    // Konstanter dichter Nachschub
+    setInterval(spawnLogoDrop, 210);
 
     document.getElementById('loginForm').addEventListener('submit', async function (e) {
         e.preventDefault();
