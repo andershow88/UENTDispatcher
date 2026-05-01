@@ -1,0 +1,202 @@
+@model List<UENTDispatcher.Models.Employee>
+@{
+    ViewData["Title"] = "Mitarbeitende";
+}
+
+<div class="app-page-header">
+    <div>
+        <div class="app-page-title">👥 Mitarbeitende verwalten</div>
+        <div class="app-page-subtitle">
+            Wer am Glücksrad teilnehmen darf. Inaktive Personen sind aus dem Pool ausgeschlossen.
+        </div>
+    </div>
+    <div>
+        <button type="button" class="btn-mc btn-mc-primary" onclick="openCreate()">
+            <i class="bi bi-plus-lg"></i> Person hinzufügen
+        </button>
+    </div>
+</div>
+
+<div class="mc-card">
+    <div class="mc-card-header">
+        <div class="mc-card-title"><i class="bi bi-people"></i> Liste (@Model.Count)</div>
+    </div>
+    <div class="mc-card-body">
+        <table class="table" style="width:100%;">
+            <thead>
+                <tr style="font-size:.78rem; color:var(--mc-text-muted); text-transform:uppercase; letter-spacing:.08em;">
+                    <th style="text-align:left; padding:.5rem .75rem;">Name</th>
+                    <th style="text-align:left; padding:.5rem .75rem;">Status</th>
+                    <th style="text-align:right; padding:.5rem .75rem;">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="empBody">
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="3"><div class="empty-state"><i class="bi bi-person-plus"></i><div>Noch keine Mitarbeitenden angelegt.</div></div></td></tr>
+                }
+                else
+                {
+                    @foreach (var e in Model)
+                    {
+                        <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-nachname="@e.Nachname" data-aktiv="@(e.IstAktiv ? "1" : "0")"
+                            style="border-bottom: 1px solid var(--mc-border);">
+                            <td style="padding:.7rem .75rem; font-weight:600; color:var(--mc-text-dark);">
+                                @e.Vorname @e.Nachname
+                            </td>
+                            <td style="padding:.7rem .75rem;">
+                                @if (e.IstAktiv)
+                                {
+                                    <span class="badge-free">Aktiv</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-locked">Inaktiv</span>
+                                }
+                            </td>
+                            <td style="padding:.7rem .75rem; text-align:right;">
+                                <button type="button" class="btn-mc btn-mc-ghost" style="padding:.35rem .8rem; font-size:.82rem;" onclick="openEdit(@e.Id)">
+                                    <i class="bi bi-pencil"></i> Bearbeiten
+                                </button>
+                                <button type="button" class="btn-mc btn-mc-danger" style="padding:.35rem .8rem; font-size:.82rem;" onclick="onDelete(@e.Id, '@e.Vorname @e.Nachname')">
+                                    <i class="bi bi-trash"></i> Löschen
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="empModal" onclick="if(event.target===this) closeEmpModal();">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div class="icon-circle"><i class="bi bi-person-plus"></i></div>
+            <div>
+                <div class="modal-title" id="empModalTitle">Mitarbeiter:in</div>
+                <div class="modal-subtitle">Vorname, Nachname und Status pflegen</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="login-error" id="empError" style="display:none;"></div>
+            <input type="hidden" id="empId" />
+            <div class="form-row">
+                <label class="form-label" for="empVorname">Vorname</label>
+                <input type="text" id="empVorname" class="form-control" />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="empNachname">Nachname</label>
+                <input type="text" id="empNachname" class="form-control" />
+            </div>
+            <div class="toggle-row" id="empAktivRow">
+                <div>
+                    <div class="toggle-text-main">Aktiv (am Glücksrad teilnehmen)</div>
+                    <div class="toggle-text-hint">Inaktive Personen sind aus dem Pool ausgeschlossen.</div>
+                </div>
+                <button type="button" id="empAktivSwitch" class="toggle-switch on" aria-label="Aktiv"></button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-mc btn-mc-ghost" onclick="closeEmpModal()">Abbrechen</button>
+            <button type="button" class="btn-mc btn-mc-primary" onclick="saveEmp()">
+                <i class="bi bi-check2"></i> Speichern
+            </button>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+    var empAktivState = true;
+    document.getElementById('empAktivSwitch').addEventListener('click', function () {
+        empAktivState = !empAktivState;
+        this.classList.toggle('on', empAktivState);
+    });
+
+    function openCreate() {
+        document.getElementById('empModalTitle').textContent = 'Neue Person hinzufügen';
+        document.getElementById('empId').value = '';
+        document.getElementById('empVorname').value = '';
+        document.getElementById('empNachname').value = '';
+        empAktivState = true;
+        document.getElementById('empAktivSwitch').classList.add('on');
+        document.getElementById('empError').style.display = 'none';
+        document.getElementById('empModal').classList.add('open');
+        setTimeout(() => document.getElementById('empVorname').focus(), 100);
+    }
+
+    function openEdit(id) {
+        var row = document.getElementById('emp-row-' + id);
+        document.getElementById('empModalTitle').textContent = 'Person bearbeiten';
+        document.getElementById('empId').value = id;
+        document.getElementById('empVorname').value = row.dataset.vorname;
+        document.getElementById('empNachname').value = row.dataset.nachname;
+        empAktivState = row.dataset.aktiv === '1';
+        document.getElementById('empAktivSwitch').classList.toggle('on', empAktivState);
+        document.getElementById('empError').style.display = 'none';
+        document.getElementById('empModal').classList.add('open');
+        setTimeout(() => document.getElementById('empVorname').focus(), 100);
+    }
+
+    function closeEmpModal() {
+        document.getElementById('empModal').classList.remove('open');
+    }
+
+    async function saveEmp() {
+        var id = document.getElementById('empId').value;
+        var vorname = document.getElementById('empVorname').value.trim();
+        var nachname = document.getElementById('empNachname').value.trim();
+        var err = document.getElementById('empError');
+        if (!vorname || !nachname) {
+            err.textContent = 'Vor- und Nachname sind Pflicht.';
+            err.style.display = 'block';
+            return;
+        }
+        try {
+            var url = id ? '/Employees/Update' : '/Employees/Create';
+            var body = id
+                ? { id: parseInt(id, 10), vorname: vorname, nachname: nachname, istAktiv: empAktivState }
+                : { vorname: vorname, nachname: nachname };
+            var res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                err.textContent = data.error || 'Speichern fehlgeschlagen.';
+                err.style.display = 'block';
+                return;
+            }
+            location.reload();
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+        }
+    }
+
+    async function onDelete(id, name) {
+        if (!confirm('Soll "' + name + '" wirklich gelöscht werden?\n\nAlle bestätigten Auswahlen dieser Person werden ebenfalls aus dem Verlauf entfernt.')) return;
+        try {
+            var res = await fetch('/Employees/Delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                alert(data.error || 'Löschen fehlgeschlagen.');
+                return;
+            }
+            location.reload();
+        } catch (e) {
+            alert('Verbindungsfehler: ' + e.message);
+        }
+    }
+</script>
+}

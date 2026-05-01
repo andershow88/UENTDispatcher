@@ -1,0 +1,77 @@
+@{
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var anzeigename = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
+        ?? User.Identity?.Name ?? "";
+    var rolle = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – UENT Dispatcher</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/dispatcher.css" asp-append-version="true" />
+</head>
+<body>
+
+<div class="app-shell">
+
+    <aside class="app-sidebar">
+        <a asp-controller="Home" asp-action="Index" class="app-brand">
+            <img src="~/images/merkur-logo.svg" alt="Merkur Privatbank" class="app-brand-logo" />
+            <div class="app-brand-title">UENT Dispatcher</div>
+            <div class="app-brand-subtitle">Jour fixe Auslosung</div>
+        </a>
+
+        <ul class="app-nav">
+            <li>
+                <a asp-controller="Home" asp-action="Index"
+                   class="app-nav-link @(ctrl == "Home" ? "active" : "")">
+                    <i class="bi bi-bullseye"></i> <span>Glücksrad</span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="Dispatcher" asp-action="Log"
+                   class="app-nav-link @(ctrl == "Dispatcher" && action == "Log" ? "active" : "")">
+                    <i class="bi bi-clock-history"></i> <span>Verlauf</span>
+                </a>
+            </li>
+            <li>
+                <a asp-controller="Employees" asp-action="Index"
+                   class="app-nav-link @(ctrl == "Employees" ? "active" : "")">
+                    <i class="bi bi-people"></i> <span>Mitarbeitende</span>
+                </a>
+            </li>
+        </ul>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="app-user">
+                <div class="app-user-label">Angemeldet</div>
+                <div class="app-user-name">@anzeigename</div>
+                <div class="app-user-role"><i class="bi @(User.IsInRole("Admin") ? "bi-shield-fill-check" : "bi-person-circle")"></i> @rolle</div>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="app-logout"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
+                </form>
+            </div>
+        }
+    </aside>
+
+    <main class="app-main">
+        @RenderBody()
+    </main>
+
+</div>
+
+@await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>

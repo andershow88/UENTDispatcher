@@ -1,0 +1,150 @@
+@{
+    ViewData["Title"] = "Glücksrad";
+    var statuses = ViewBag.Statuses as List<UENTDispatcher.Services.EmployeeStatus> ?? new();
+    var statusJson = System.Text.Json.JsonSerializer.Serialize(statuses);
+}
+
+<div class="app-page-header">
+    <div>
+        <div class="app-page-title">🎯 Dispatcher der Woche auslosen</div>
+        <div class="app-page-subtitle">
+            Eine Person wird zufällig ausgewählt und übernimmt für die nächste Woche das Service Desk.
+            Aktuelle Sperrfrist: <strong>21 Tage</strong>.
+        </div>
+    </div>
+    <div>
+        <a asp-controller="Dispatcher" asp-action="Log" class="btn-mc btn-mc-ghost">
+            <i class="bi bi-clock-history"></i> Verlauf öffnen
+        </a>
+    </div>
+</div>
+
+<div class="wheel-stage">
+
+    <!-- ────────────────── Wheel-Bereich (Mitte) ────────────────── -->
+    <div class="wheel-frame">
+
+        <div class="wheel-canvas-wrap">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheelCanvas" class="wheel-canvas"></canvas>
+            <div class="wheel-hub"><i class="bi bi-stars"></i></div>
+        </div>
+
+        <div class="wheel-actions">
+            <button id="btnSpin" class="btn-mc btn-mc-primary btn-mc-lg">
+                <i class="bi bi-arrow-repeat"></i> Drehen
+            </button>
+            <div id="actionsAfterSpin" style="display:none; gap:.7rem;">
+                <button id="btnConfirm" class="btn-mc btn-mc-gold btn-mc-lg">
+                    <i class="bi bi-check2-circle"></i> Bestätigen
+                </button>
+                <button id="btnRespin" class="btn-mc btn-mc-ghost btn-mc-lg">
+                    <i class="bi bi-arrow-clockwise"></i> Erneut drehen
+                </button>
+            </div>
+        </div>
+
+        <div id="wheelResult" class="wheel-result" style="display:none;">
+            <div class="wheel-result-icon"><i class="bi bi-trophy"></i></div>
+            <div>
+                <div class="wheel-result-label">Ausgewählt</div>
+                <div id="resultName" class="wheel-result-name">—</div>
+                <div id="resultHint" class="wheel-result-hint"></div>
+            </div>
+        </div>
+
+        <div id="wheelError" class="wheel-error" style="display:none;"></div>
+
+        <div id="toggleRow" class="toggle-row">
+            <div>
+                <div class="toggle-text-main"><i class="bi bi-shield-exclamation"></i> Sperrliste ignorieren</div>
+                <div class="toggle-text-hint">
+                    Aktiviert → auch gesperrte Personen drehen mit. Wird eine gesperrte Person bestätigt,
+                    werden ihre verbleibenden Sperrtage auf die neuen 21 Tage <strong>aufgeschlagen</strong>.
+                </div>
+            </div>
+            <button type="button" id="toggleBlacklist" class="toggle-switch" aria-label="Sperrliste ignorieren"></button>
+        </div>
+    </div>
+
+    <!-- ────────────────── Status-Panel (rechts) ────────────────── -->
+    <div>
+        <div class="mc-card" style="margin-bottom: 1rem;">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-people"></i> Teilnehmende</div>
+                <div class="muted" style="font-size:.78rem;">Aktiv: <span id="totalActive">0</span></div>
+            </div>
+            <div class="mc-card-body">
+                <div class="status-card-section green">
+                    <div class="status-card-section-label">Verfügbar</div>
+                    <div class="status-card-section-count" id="availableCount">0</div>
+                </div>
+                <div id="availableList" style="margin-bottom: .8rem;"></div>
+
+                <div class="status-card-section amber">
+                    <div class="status-card-section-label">Gesperrt</div>
+                    <div class="status-card-section-count" id="lockedCount">0</div>
+                </div>
+                <div id="lockedList"></div>
+            </div>
+        </div>
+
+        <div class="mc-card">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-info-circle"></i> Hinweise</div>
+            </div>
+            <div class="mc-card-body" style="font-size:.85rem; color: var(--mc-text);">
+                <ul style="padding-left:1.1rem; margin:0;">
+                    <li>Eine Auswahl gilt erst nach Klick auf <strong>Bestätigen</strong>.</li>
+                    <li>Bestätigte Personen sind <strong>21 Tage gesperrt</strong>.</li>
+                    <li>Bei aktiver „Sperrliste ignorieren"-Option und Override-Auswahl wird die Restsperre kumuliert (z. B. 7 + 21 = 28 Tage).</li>
+                    <li>Mitarbeitende pflegen unter <a asp-controller="Employees" asp-action="Index">Mitarbeitende</a>.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ────────────────── Confirm-Erfolg-Modal ────────────────── -->
+<div class="modal-overlay" id="successModal" onclick="if(event.target===this) closeSuccessModal();">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div class="icon-circle"><i class="bi bi-trophy-fill"></i></div>
+            <div>
+                <div class="modal-title">Dispatcher bestätigt!</div>
+                <div class="modal-subtitle">Die Auswahl wurde im Verlauf gespeichert.</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-winner">
+                <div class="confirm-winner-name" id="successName">—</div>
+                <div class="confirm-winner-meta" id="successMeta"></div>
+            </div>
+            <div class="muted" style="font-size:.86rem; text-align:center;">
+                Viel Erfolg! 🚀 Diese Person übernimmt jetzt das Service Desk.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a asp-controller="Dispatcher" asp-action="Log" class="btn-mc btn-mc-ghost">
+                <i class="bi bi-clock-history"></i> Verlauf
+            </a>
+            <button type="button" class="btn-mc btn-mc-primary" onclick="closeSuccessModal()">
+                Schließen
+            </button>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script src="~/js/wheel.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var initial = @Html.Raw(statusJson);
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            UENTWheel.init(initial, token);
+        })();
+    </script>
+}

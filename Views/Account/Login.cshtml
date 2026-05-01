@@ -1,0 +1,84 @@
+@{
+    Layout = null;
+    var returnUrl = ViewBag.ReturnUrl as string ?? "/";
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anmelden – UENT Dispatcher</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/dispatcher.css" asp-append-version="true" />
+</head>
+<body>
+
+<div class="login-stage">
+    <div class="login-card">
+        <div class="login-logo">
+            <img src="~/images/merkur-logo.svg" alt="Merkur Privatbank" />
+        </div>
+        <div class="login-title">UENT Dispatcher</div>
+        <div class="login-subtitle">Wöchentliche Auslosung für den Jour fixe</div>
+
+        <div class="login-error" id="loginError"></div>
+
+        <form id="loginForm" autocomplete="on">
+            <div class="form-row">
+                <label class="form-label" for="benutzername">Benutzername</label>
+                <input type="text" id="benutzername" class="form-control" autofocus required />
+            </div>
+            <div class="form-row">
+                <label class="form-label" for="passwort">Passwort</label>
+                <input type="password" id="passwort" class="form-control" required />
+            </div>
+            <button type="submit" class="btn-mc btn-mc-primary btn-mc-block btn-mc-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Anmelden
+            </button>
+        </form>
+
+        <div class="login-hint">
+            Standard-Zugang: <code>admin</code> / <code>Admin1234!</code><br/>
+            (Bitte nach erstem Login ändern)
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var err = document.getElementById('loginError');
+        err.style.display = 'none';
+        var benutzername = document.getElementById('benutzername').value.trim();
+        var passwort = document.getElementById('passwort').value;
+        if (!benutzername || !passwort) {
+            err.textContent = 'Bitte Benutzername und Passwort eingeben.';
+            err.style.display = 'block';
+            return;
+        }
+        try {
+            var res = await fetch('/Account/Login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ benutzername: benutzername, passwort: passwort })
+            });
+            var data = await res.json();
+            if (data.ok) {
+                window.location.href = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(returnUrl));
+            } else {
+                err.textContent = data.error || 'Anmeldung fehlgeschlagen.';
+                err.style.display = 'block';
+            }
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>

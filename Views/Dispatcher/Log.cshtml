@@ -1,0 +1,77 @@
+@model List<UENTDispatcher.Services.LogEintrag>
+@using UENTDispatcher.Models
+@{
+    ViewData["Title"] = "Verlauf";
+}
+
+<div class="app-page-header">
+    <div>
+        <div class="app-page-title">📜 Verlauf der Auslosungen</div>
+        <div class="app-page-subtitle">Alle bestätigten Dispatcher-Auswahlen — neueste zuerst.</div>
+    </div>
+    <div>
+        <a asp-controller="Home" asp-action="Index" class="btn-mc btn-mc-primary">
+            <i class="bi bi-bullseye"></i> Zum Glücksrad
+        </a>
+    </div>
+</div>
+
+<div class="mc-card">
+    <div class="mc-card-header">
+        <div class="mc-card-title"><i class="bi bi-clock-history"></i> Bestätigte Auswahlen (@Model.Count)</div>
+    </div>
+    <div class="mc-card-body">
+        @if (Model.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <div style="margin-top:.6rem;">Noch keine Auswahl bestätigt.</div>
+                <div style="font-size:.82rem; margin-top:.3rem;">Drehe das Glücksrad und bestätige die Auswahl, damit der erste Eintrag erscheint.</div>
+            </div>
+        }
+        else
+        {
+            <div class="timeline">
+                @foreach (var e in Model)
+                {
+                    var bestaetigtLokal = DeutscheZeit.ToLokal(e.BestaetigtUtc);
+                    var sperrEndeLokal = DeutscheZeit.ToLokal(e.SperrBisUtc);
+                    var jetzt = DateTime.UtcNow;
+                    var nochGesperrt = e.SperrBisUtc > jetzt;
+                    var restTage = nochGesperrt ? Math.Max(1, (int)Math.Ceiling((e.SperrBisUtc - jetzt).TotalDays)) : 0;
+                    <div class="timeline-item @(e.BlacklistIgnoriert ? "override" : "")">
+                        <div class="timeline-date">
+                            Dispatcher ausgewählt am @bestaetigtLokal.ToString("dddd, dd.MM.yyyy 'um' HH:mm 'Uhr'", new System.Globalization.CultureInfo("de-DE"))
+                        </div>
+                        <div class="timeline-name">@e.Anzeigename</div>
+                        <div class="timeline-meta">
+                            Sperrfrist bis @sperrEndeLokal.ToString("dd.MM.yyyy", new System.Globalization.CultureInfo("de-DE"))
+                            @if (nochGesperrt)
+                            {
+                                <span> — noch <strong>@restTage Tag(e)</strong> gesperrt.</span>
+                            }
+                            else
+                            {
+                                <span> — bereits abgelaufen.</span>
+                            }
+                        </div>
+                        <div class="timeline-tags">
+                            @if (e.BlacklistIgnoriert)
+                            {
+                                <span class="timeline-tag warning"><i class="bi bi-shield-exclamation"></i> Override</span>
+                            }
+                            else
+                            {
+                                <span class="timeline-tag gold"><i class="bi bi-shield-check"></i> Reguläre Auswahl</span>
+                            }
+                            @if (e.RestTageUebernommen > 0)
+                            {
+                                <span class="timeline-tag warning">+ @e.RestTageUebernommen Resttag(e) übernommen</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
