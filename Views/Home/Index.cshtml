@@ -81,8 +81,15 @@
 <div class="modal-overlay" id="winnerModal">
     <div class="modal-card winner-card">
         <div class="modal-head winner-head">
-            <div class="winner-emoji">🎉</div>
-            <div>
+            <!-- Foto des Gewinners — wird beim Modal-Open ueber 5s animiert
+                 (Spin + Scale-Up). Faellt auf Initialen zurueck, wenn kein
+                 Foto hinterlegt ist. -->
+            <div class="winner-photo-container" id="winnerPhotoContainer">
+                <img id="winnerPhotoImg" alt="" />
+                <span id="winnerPhotoInitials" class="winner-photo-initials">?</span>
+                <div class="winner-photo-sparkle">🎉</div>
+            </div>
+            <div class="winner-head-text">
                 <div class="modal-title">Glückwunsch!</div>
                 <div class="modal-subtitle">Diese Woche bist du dran</div>
             </div>

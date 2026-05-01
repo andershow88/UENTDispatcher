@@ -696,14 +696,77 @@ a:hover { color: var(--mc-petrol-dark); }
 .winner-card { max-width: 560px; }
 
 .winner-head {
-    /* etwas dramatischer als das Standard modal-head */
-    padding: 1.6rem 1.8rem;
+    /* Vertikal stapeln: Foto oben, Texte darunter */
+    padding: 1.8rem 1.8rem 1.5rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: .9rem;
 }
-.winner-emoji {
-    font-size: 2.4rem;
-    line-height: 1;
+.winner-head-text {
+    /* damit Title/Subtitle einheitlich gestapelt sind */
+    width: 100%;
+}
+
+/* Foto-Container im Winner-Modal — wird ueber 5s animiert (Spin + Scale-Up) */
+.winner-photo-container {
+    position: relative;
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid rgba(255,255,255,.95);
+    box-shadow:
+        0 10px 28px rgba(0,0,0,.4),
+        0 0 0 6px rgba(200,169,110,.18);
+    background: linear-gradient(135deg, var(--mc-gold), var(--mc-petrol));
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+    transform-origin: 50% 50%;
+    will-change: transform;
+}
+.winner-photo-container img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+.winner-photo-initials {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 2.8rem;
+    letter-spacing: .04em;
+    text-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.winner-photo-sparkle {
+    position: absolute;
+    top: -4px; right: -8px;
+    font-size: 1.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
+    animation: sparklePop .6s cubic-bezier(.18,.85,.25,1) 4.5s both;
+    transform: scale(0);
+}
+@keyframes sparklePop {
+    0%   { transform: scale(0) rotate(-30deg); }
+    60%  { transform: scale(1.2) rotate(15deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+/* 5-Sekunden-Reveal: Foto poppt klein in den Modal hinein, dreht 3 Volldrehungen
+   und wird gross. Ease-out → schneller Start, sanftes Auslaufen, finaler Stand
+   bleibt erhalten (forwards). */
+@keyframes winnerPhotoReveal {
+    0%   { transform: scale(0.05) rotate(0deg); opacity: 0; }
+    8%   { opacity: 1; }
+    100% { transform: scale(1) rotate(1080deg); opacity: 1; }
+}
+.winner-photo-container.revealing {
+    animation: winnerPhotoReveal 5s cubic-bezier(.18, .65, .25, 1) forwards;
 }
 
 .winner-name {

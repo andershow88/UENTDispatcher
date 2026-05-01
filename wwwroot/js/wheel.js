@@ -639,6 +639,25 @@
         document.getElementById('winnerName').textContent = firstName;
         document.getElementById('winnerWitty').textContent = pickWittyLine(winner);
 
+        // ── Foto-Reveal vorbereiten ─────────────────────────────────────
+        // Wenn ein Foto im Cache ist, in das Reveal-Element setzen,
+        // sonst Initialen-Fallback. Das Foto wurde waehrend des Spins
+        // (triggerPhotoLoads) bereits geladen.
+        var photoEl = document.getElementById('winnerPhotoImg');
+        var initEl = document.getElementById('winnerPhotoInitials');
+        var initials = (firstName.substring(0, 2) || '?').toUpperCase();
+        var cached = photoCache[winner.id];
+        if (cached && cached.naturalWidth > 0) {
+            photoEl.src = cached.src;
+            photoEl.style.display = 'block';
+            initEl.style.display = 'none';
+        } else {
+            photoEl.removeAttribute('src');
+            photoEl.style.display = 'none';
+            initEl.textContent = initials;
+            initEl.style.display = 'flex';
+        }
+
         var lockHint = document.getElementById('winnerLockHint');
         if (winner.gesperrt) {
             lockHint.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
@@ -659,8 +678,19 @@
         respinBtn.disabled = false;
 
         document.getElementById('winnerModal').classList.add('open');
-        // Konfetti zur Feier des ausgewaehlten — dezente Celebration, kein
-        // separates Modal danach mehr.
+
+        // 5-Sekunden-Reveal: Foto poppt rein, dreht 3 Volldrehungen, waechst
+        // bis zur finalen Groesse. Klasse erst entfernen + Reflow erzwingen,
+        // damit die Animation auch beim zweiten Aufruf (Erneut drehen) frisch
+        // startet und nicht im Endzustand stehen bleibt.
+        var container = document.getElementById('winnerPhotoContainer');
+        if (container) {
+            container.classList.remove('revealing');
+            void container.offsetWidth;
+            container.classList.add('revealing');
+        }
+
+        // Konfetti zur Feier — dezente Celebration zusaetzlich zur Foto-Reveal
         confetti();
     }
 
