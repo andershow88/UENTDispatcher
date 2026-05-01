@@ -24,18 +24,18 @@ public class EmployeesController : Controller
         return View(list);
     }
 
-    public record CreateRequest(string Vorname, string Nachname);
+    public record CreateRequest(string Vorname);
 
     [HttpPost("Create")]
     public async Task<IActionResult> Create([FromBody] CreateRequest req)
     {
-        if (req == null || string.IsNullOrWhiteSpace(req.Vorname) || string.IsNullOrWhiteSpace(req.Nachname))
-            return Json(new { ok = false, error = "Vor- und Nachname sind Pflicht." });
+        if (req == null || string.IsNullOrWhiteSpace(req.Vorname))
+            return Json(new { ok = false, error = "Vorname ist Pflicht." });
 
         var e = new Employee
         {
             Vorname = req.Vorname.Trim(),
-            Nachname = req.Nachname.Trim(),
+            Nachname = string.Empty,        // Nachname wird nicht mehr gepflegt
             IstAktiv = true,
             ErstelltAm = DateTime.UtcNow
         };
@@ -44,7 +44,7 @@ public class EmployeesController : Controller
         return Json(new { ok = true, id = e.Id });
     }
 
-    public record UpdateRequest(int Id, string Vorname, string Nachname, bool IstAktiv);
+    public record UpdateRequest(int Id, string Vorname, bool IstAktiv);
 
     [HttpPost("Update")]
     public async Task<IActionResult> Update([FromBody] UpdateRequest req)
@@ -52,11 +52,10 @@ public class EmployeesController : Controller
         if (req == null) return Json(new { ok = false, error = "Ungueltige Anfrage." });
         var e = await _db.Employees.FirstOrDefaultAsync(p => p.Id == req.Id);
         if (e == null) return Json(new { ok = false, error = "Mitarbeiter:in nicht gefunden." });
-        if (string.IsNullOrWhiteSpace(req.Vorname) || string.IsNullOrWhiteSpace(req.Nachname))
-            return Json(new { ok = false, error = "Vor- und Nachname sind Pflicht." });
+        if (string.IsNullOrWhiteSpace(req.Vorname))
+            return Json(new { ok = false, error = "Vorname ist Pflicht." });
 
         e.Vorname = req.Vorname.Trim();
-        e.Nachname = req.Nachname.Trim();
         e.IstAktiv = req.IstAktiv;
         await _db.SaveChangesAsync();
         return Json(new { ok = true });

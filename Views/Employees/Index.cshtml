@@ -41,15 +41,14 @@
                 {
                     @foreach (var e in Model)
                     {
-                        var initials = (e.Vorname.Length > 0 ? e.Vorname[0].ToString() : "")
-                                       + (e.Nachname.Length > 0 ? e.Nachname[0].ToString() : "");
+                        var initials = e.Vorname.Length > 0 ? e.Vorname.Substring(0, Math.Min(2, e.Vorname.Length)) : "?";
                         var hasPhoto = e.PhotoBytes != null && e.PhotoBytes.Length > 0;
-                        <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-nachname="@e.Nachname" data-aktiv="@(e.IstAktiv ? "1" : "0")">
+                        <tr id="emp-row-@e.Id" data-id="@e.Id" data-vorname="@e.Vorname" data-aktiv="@(e.IstAktiv ? "1" : "0")">
                             <td>
                                 <div class="emp-avatar" onclick="triggerPhotoUpload(@e.Id)" title="Foto hochladen / ersetzen">
                                     @if (hasPhoto)
                                     {
-                                        <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id" alt="@e.Vorname @e.Nachname" />
+                                        <img id="emp-photo-@e.Id" src="/Employees/Photo/@e.Id" alt="@e.Vorname" />
                                     }
                                     else
                                     {
@@ -59,7 +58,7 @@
                                 </div>
                             </td>
                             <td class="emp-name-cell">
-                                <span class="emp-name">@e.Vorname @e.Nachname</span>
+                                <span class="emp-name">@e.Vorname</span>
                             </td>
                             <td>
                                 <button type="button"
@@ -72,7 +71,7 @@
                                 <button type="button" class="btn-mc btn-mc-ghost emp-action-btn" onclick="openEdit(@e.Id)">
                                     <i class="bi bi-pencil"></i> Bearbeiten
                                 </button>
-                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname @e.Nachname')" title="Löschen">
+                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname')" title="Löschen">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -86,6 +85,49 @@
 
 <!-- Verstecktes File-Input fuer Foto-Upload aus der Liste -->
 <input type="file" id="empPhotoFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;" />
+
+<!-- ────────── Cropper-Modal: Bildausschnitt selber waehlen ────────── -->
+<div class="modal-overlay" id="cropperModal">
+    <div class="modal-card cropper-card">
+        <div class="modal-head">
+            <div class="icon-circle"><i class="bi bi-crop"></i></div>
+            <div>
+                <div class="modal-title">Bildausschnitt wählen</div>
+                <div class="modal-subtitle">Verschieben + Zoom — der runde Bereich landet als Foto</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div id="cropperStage" class="cropper-stage">
+                <img id="cropperImg" class="cropper-img" alt="" draggable="false" />
+                <svg class="cropper-mask" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                    <defs>
+                        <mask id="cropperHole">
+                            <rect width="100" height="100" fill="white" />
+                            <circle cx="50" cy="50" r="49.5" fill="black" />
+                        </mask>
+                    </defs>
+                    <rect width="100" height="100" fill="rgba(0,0,0,.6)" mask="url(#cropperHole)" />
+                    <circle cx="50" cy="50" r="49.5" fill="none" stroke="rgba(255,255,255,.9)" stroke-width=".4" />
+                </svg>
+            </div>
+            <div class="cropper-controls">
+                <button type="button" class="cropper-zoom-btn" onclick="cropperZoomBy(-25)" title="Auszoomen">−</button>
+                <input type="range" id="cropperZoomSlider" class="cropper-zoom-slider" min="100" max="400" value="100" oninput="onCropperZoom()" />
+                <button type="button" class="cropper-zoom-btn" onclick="cropperZoomBy(25)" title="Einzoomen">+</button>
+            </div>
+            <div style="text-align:center; font-size:.82rem; color:var(--mc-text-muted); margin-top:.6rem;">
+                Foto verschieben → ziehen / wischen. Zoomen → Slider, Mausrad oder − / + Tasten.
+            </div>
+            <div class="login-error" id="cropperError" style="display:none; margin-top:.8rem;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-mc btn-mc-ghost" onclick="closeCropper()">Abbrechen</button>
+            <button type="button" class="btn-mc btn-mc-primary" id="cropperSaveBtn" onclick="saveCropped()">
+                <i class="bi bi-check2"></i> Übernehmen
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- ────────── Modal: Mitarbeiter löschen (im gleichen Stil wie Verlauf) ────────── -->
 <div class="modal-overlay" id="empDeleteModal" onclick="if(event.target===this) closeEmpDeleteModal();">
@@ -134,10 +176,6 @@
                 <label class="form-label" for="empVorname">Vorname</label>
                 <input type="text" id="empVorname" class="form-control" />
             </div>
-            <div class="form-row">
-                <label class="form-label" for="empNachname">Nachname</label>
-                <input type="text" id="empNachname" class="form-control" />
-            </div>
             <div class="toggle-row" id="empAktivRow">
                 <div>
                     <div class="toggle-text-main">Aktiv (am Glücksrad teilnehmen)</div>
@@ -170,7 +208,6 @@
         document.getElementById('empModalTitle').textContent = 'Neue Person hinzufügen';
         document.getElementById('empId').value = '';
         document.getElementById('empVorname').value = '';
-        document.getElementById('empNachname').value = '';
         empAktivState = true;
         document.getElementById('empAktivSwitch').classList.add('on');
         document.getElementById('empError').style.display = 'none';
@@ -183,7 +220,6 @@
         document.getElementById('empModalTitle').textContent = 'Person bearbeiten';
         document.getElementById('empId').value = id;
         document.getElementById('empVorname').value = row.dataset.vorname;
-        document.getElementById('empNachname').value = row.dataset.nachname;
         empAktivState = row.dataset.aktiv === '1';
         document.getElementById('empAktivSwitch').classList.toggle('on', empAktivState);
         document.getElementById('empError').style.display = 'none';
@@ -198,18 +234,17 @@
     async function saveEmp() {
         var id = document.getElementById('empId').value;
         var vorname = document.getElementById('empVorname').value.trim();
-        var nachname = document.getElementById('empNachname').value.trim();
         var err = document.getElementById('empError');
-        if (!vorname || !nachname) {
-            err.textContent = 'Vor- und Nachname sind Pflicht.';
+        if (!vorname) {
+            err.textContent = 'Vorname ist Pflicht.';
             err.style.display = 'block';
             return;
         }
         try {
             var url = id ? '/Employees/Update' : '/Employees/Create';
             var body = id
-                ? { id: parseInt(id, 10), vorname: vorname, nachname: nachname, istAktiv: empAktivState }
-                : { vorname: vorname, nachname: nachname };
+                ? { id: parseInt(id, 10), vorname: vorname, istAktiv: empAktivState }
+                : { vorname: vorname };
             var res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -266,7 +301,7 @@
         input.click();
     }
 
-    document.getElementById('empPhotoFileInput').addEventListener('change', async function (e) {
+    document.getElementById('empPhotoFileInput').addEventListener('change', function (e) {
         var id = pendingPhotoEmpId;
         pendingPhotoEmpId = null;
         if (!id || !e.target.files || e.target.files.length === 0) return;
@@ -275,27 +310,207 @@
             alert('Foto zu groß (max. 5 MB).');
             return;
         }
-        var fd = new FormData();
-        fd.append('id', id);
-        fd.append('file', file);
-        try {
-            var res = await fetch('/Employees/UploadPhoto', { method: 'POST', body: fd });
-            var data = await res.json();
-            if (!data.ok) {
-                alert(data.error || 'Upload fehlgeschlagen.');
-                return;
-            }
-            // Avatar im DOM aktualisieren — wenn vorher Initialen, durch <img> ersetzen
-            var holder = document.getElementById('emp-photo-' + id);
-            if (holder && holder.tagName === 'IMG') {
-                holder.src = '/Employees/Photo/' + id + '?v=' + Date.now();
-            } else {
-                location.reload();
-            }
-        } catch (e) {
-            alert('Verbindungsfehler: ' + e.message);
-        }
+        // Statt direkt hochzuladen: Cropper-Modal oeffnen, damit der User
+        // selbst den runden Ausschnitt waehlen kann.
+        openCropper(file, id);
     });
+
+    // ── Cropper: Pan + Zoom + Save als 400x400 JPEG ─────────────────────
+    var cropperState = {
+        targetEmpId: null,
+        dataUrl: null,
+        naturalW: 0, naturalH: 0,
+        tx: 0, ty: 0,
+        scale: 1,
+        minScale: 1,
+        dragging: false,
+        dragStartX: 0, dragStartY: 0,
+        dragStartTx: 0, dragStartTy: 0
+    };
+
+    function getCropperStageSize() {
+        return document.getElementById('cropperStage').clientWidth;
+    }
+
+    function openCropper(file, empId) {
+        cropperState.targetEmpId = empId;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            cropperState.dataUrl = ev.target.result;
+            var probe = new Image();
+            probe.onload = function () {
+                cropperState.naturalW = probe.naturalWidth;
+                cropperState.naturalH = probe.naturalHeight;
+                document.getElementById('cropperImg').src = cropperState.dataUrl;
+                document.getElementById('cropperError').style.display = 'none';
+                document.getElementById('cropperModal').classList.add('open');
+                // Layout muss erst settlen, dann initial fitten
+                setTimeout(initCropper, 30);
+            };
+            probe.onerror = function () { alert('Bild konnte nicht gelesen werden.'); };
+            probe.src = cropperState.dataUrl;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function initCropper() {
+        var stage = getCropperStageSize();
+        // Cover-Verhalten: Skalierung so, dass die kuerzere Seite die Stage fuellt
+        var byW = stage / cropperState.naturalW;
+        var byH = stage / cropperState.naturalH;
+        cropperState.minScale = Math.max(byW, byH);
+        cropperState.scale = cropperState.minScale;
+        var dispW = cropperState.naturalW * cropperState.scale;
+        var dispH = cropperState.naturalH * cropperState.scale;
+        cropperState.tx = (stage - dispW) / 2;
+        cropperState.ty = (stage - dispH) / 2;
+        document.getElementById('cropperZoomSlider').value = 100;
+        applyCropperTransform();
+    }
+
+    function applyCropperTransform() {
+        var img = document.getElementById('cropperImg');
+        var s = cropperState.scale;
+        img.style.width = (cropperState.naturalW * s) + 'px';
+        img.style.height = (cropperState.naturalH * s) + 'px';
+        img.style.transform = 'translate(' + cropperState.tx + 'px, ' + cropperState.ty + 'px)';
+    }
+
+    function clampCropperPosition() {
+        var stage = getCropperStageSize();
+        var dispW = cropperState.naturalW * cropperState.scale;
+        var dispH = cropperState.naturalH * cropperState.scale;
+        var minTx = stage - dispW;
+        var minTy = stage - dispH;
+        cropperState.tx = Math.max(minTx, Math.min(0, cropperState.tx));
+        cropperState.ty = Math.max(minTy, Math.min(0, cropperState.ty));
+    }
+
+    function onCropperZoom() {
+        var slider = document.getElementById('cropperZoomSlider');
+        var pct = parseFloat(slider.value) / 100;
+        var stage = getCropperStageSize();
+        var oldScale = cropperState.scale;
+        var newScale = cropperState.minScale * pct;
+        // Center fixiert lassen waehrend Zoom
+        var imgX = (stage / 2 - cropperState.tx) / oldScale;
+        var imgY = (stage / 2 - cropperState.ty) / oldScale;
+        cropperState.scale = newScale;
+        cropperState.tx = stage / 2 - imgX * newScale;
+        cropperState.ty = stage / 2 - imgY * newScale;
+        clampCropperPosition();
+        applyCropperTransform();
+    }
+
+    window.cropperZoomBy = function (delta) {
+        var slider = document.getElementById('cropperZoomSlider');
+        var v = parseFloat(slider.value) + delta;
+        v = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), v));
+        slider.value = v;
+        onCropperZoom();
+    };
+
+    function setupCropperDrag() {
+        var stage = document.getElementById('cropperStage');
+        if (stage.dataset.dragInit === '1') return;
+        stage.dataset.dragInit = '1';
+
+        var startDrag = function (clientX, clientY) {
+            cropperState.dragging = true;
+            cropperState.dragStartX = clientX;
+            cropperState.dragStartY = clientY;
+            cropperState.dragStartTx = cropperState.tx;
+            cropperState.dragStartTy = cropperState.ty;
+        };
+        var moveDrag = function (clientX, clientY) {
+            if (!cropperState.dragging) return;
+            cropperState.tx = cropperState.dragStartTx + (clientX - cropperState.dragStartX);
+            cropperState.ty = cropperState.dragStartTy + (clientY - cropperState.dragStartY);
+            clampCropperPosition();
+            applyCropperTransform();
+        };
+        var endDrag = function () { cropperState.dragging = false; };
+
+        stage.addEventListener('mousedown', function (e) { startDrag(e.clientX, e.clientY); e.preventDefault(); });
+        document.addEventListener('mousemove', function (e) { moveDrag(e.clientX, e.clientY); });
+        document.addEventListener('mouseup', endDrag);
+
+        stage.addEventListener('touchstart', function (e) {
+            if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+        }, { passive: false });
+        stage.addEventListener('touchmove', function (e) {
+            if (e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+        }, { passive: false });
+        stage.addEventListener('touchend', endDrag);
+
+        stage.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            var delta = -e.deltaY * 0.05;
+            cropperZoomBy(delta);
+        }, { passive: false });
+    }
+    setupCropperDrag();
+
+    window.closeCropper = function () {
+        document.getElementById('cropperModal').classList.remove('open');
+    };
+
+    window.saveCropped = function () {
+        var stage = getCropperStageSize();
+        var output = 400;
+        var canvas = document.createElement('canvas');
+        canvas.width = output; canvas.height = output;
+        var ctx = canvas.getContext('2d');
+        var srcX = -cropperState.tx / cropperState.scale;
+        var srcY = -cropperState.ty / cropperState.scale;
+        var srcSize = stage / cropperState.scale;
+
+        var img = new Image();
+        img.onload = function () {
+            ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, output, output);
+            canvas.toBlob(async function (blob) {
+                if (!blob) {
+                    document.getElementById('cropperError').textContent = 'Bild konnte nicht erzeugt werden.';
+                    document.getElementById('cropperError').style.display = 'block';
+                    return;
+                }
+                var btn = document.getElementById('cropperSaveBtn');
+                var err = document.getElementById('cropperError');
+                err.style.display = 'none';
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Lädt hoch…';
+                try {
+                    var fd = new FormData();
+                    fd.append('id', cropperState.targetEmpId);
+                    fd.append('file', blob, 'photo.jpg');
+                    var res = await fetch('/Employees/UploadPhoto', { method: 'POST', body: fd });
+                    var data = await res.json();
+                    if (!data.ok) {
+                        err.textContent = data.error || 'Upload fehlgeschlagen.';
+                        err.style.display = 'block';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-check2"></i> Übernehmen';
+                        return;
+                    }
+                    closeCropper();
+                    var holder = document.getElementById('emp-photo-' + cropperState.targetEmpId);
+                    if (holder && holder.tagName === 'IMG') {
+                        holder.src = '/Employees/Photo/' + cropperState.targetEmpId + '?v=' + Date.now();
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-check2"></i> Übernehmen';
+                    } else {
+                        location.reload();
+                    }
+                } catch (e) {
+                    err.textContent = 'Verbindungsfehler: ' + e.message;
+                    err.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check2"></i> Übernehmen';
+                }
+            }, 'image/jpeg', 0.92);
+        };
+        img.src = cropperState.dataUrl;
+    };
 
     // ── Mitarbeiter loeschen (Modal) ─────────────────────────────────────
     var pendingEmpDeleteId = null;
@@ -344,6 +559,7 @@
         if (e.key === 'Escape') {
             closeEmpModal();
             closeEmpDeleteModal();
+            closeCropper();
         }
     });
 </script>

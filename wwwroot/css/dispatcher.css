@@ -744,6 +744,62 @@ a:hover { color: var(--mc-petrol-dark); }
     border-color: rgba(245,158,11,.4);
 }
 
+/* ════════════════════════════ Cropper-Modal ══════════════════════════════ */
+
+.cropper-card { max-width: 420px; }
+.cropper-stage {
+    position: relative;
+    width: min(320px, 86vw);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    background: #1a1a1a;
+    border-radius: var(--mc-radius);
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+.cropper-stage:active { cursor: grabbing; }
+.cropper-img {
+    position: absolute; top: 0; left: 0;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+.cropper-mask {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    width: 100%; height: 100%;
+}
+.cropper-controls {
+    margin-top: 1rem;
+    display: flex; align-items: center; gap: .8rem;
+    justify-content: center;
+}
+.cropper-zoom-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--mc-border);
+    background: var(--mc-bg-card);
+    color: var(--mc-text-dark);
+    font-size: 1.2rem; font-weight: 600;
+    cursor: pointer;
+    transition: var(--mc-transition);
+}
+.cropper-zoom-btn:hover {
+    background: var(--mc-petrol);
+    color: #fff;
+    border-color: var(--mc-petrol);
+}
+.cropper-zoom-slider {
+    flex: 1;
+    max-width: 220px;
+    accent-color: var(--mc-petrol);
+}
+
 /* ════════════════════════════ Mitarbeiter-Tabelle ═════════════════════════ */
 
 .emp-table {

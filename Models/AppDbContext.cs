@@ -72,8 +72,9 @@ public class Employee
 
     public List<DispatcherSelection> Auswahlen { get; set; } = new();
 
-    /// <summary>Anzeige-Name fuer UI: "Vorname Nachname".</summary>
-    public string Anzeigename => $"{Vorname} {Nachname}".Trim();
+    /// <summary>Anzeige-Name fuer UI: nur Vorname (Nachname wird intern
+    /// gespeichert, aber nirgendwo mehr angezeigt — V1.2).</summary>
+    public string Anzeigename => (Vorname ?? string.Empty).Trim();
 }
 
 /// <summary>

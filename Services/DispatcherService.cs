@@ -200,7 +200,7 @@ public class DispatcherService
             .Take(max)
             .Select(s => new LogEintrag(
                 s.Id,
-                s.Employee!.Vorname + " " + s.Employee.Nachname,
+                s.Employee!.Vorname,           // Anzeige nur noch Vorname
                 s.BestaetigtUtc,
                 s.SperrBisUtc,
                 s.BlacklistIgnoriert,

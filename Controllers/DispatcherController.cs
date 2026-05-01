@@ -29,15 +29,14 @@ public class DispatcherController : Controller
             {
                 id = result.Auswahl.Id,
                 vorname = result.Auswahl.Vorname,
-                nachname = result.Auswahl.Nachname,
-                anzeigename = $"{result.Auswahl.Vorname} {result.Auswahl.Nachname}",
+                anzeigename = result.Auswahl.Vorname,    // nur Vorname
                 gesperrt = result.Auswahl.Gesperrt,
                 restTage = result.Auswahl.RestTage
             },
             kandidaten = result.AlleKandidaten.Select(s => new
             {
                 id = s.Id,
-                anzeigename = $"{s.Vorname} {s.Nachname}",
+                anzeigename = s.Vorname,                  // nur Vorname
                 gesperrt = s.Gesperrt,
                 restTage = s.RestTage
             })
@@ -76,7 +75,7 @@ public class DispatcherController : Controller
         return Json(statuses.Select(s => new
         {
             id = s.Id,
-            anzeigename = $"{s.Vorname} {s.Nachname}",
+            anzeigename = s.Vorname,                  // nur Vorname
             gesperrt = s.Gesperrt,
             restTage = s.RestTage,
             sperrBisUtc = s.SperrBisUtc
