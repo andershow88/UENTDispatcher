@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<DispatcherSelection> DispatcherSelections => Set<DispatcherSelection>();
+    public DbSet<AppSettings> AppSettings => Set<AppSettings>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -43,7 +44,26 @@ public class AppDbContext : DbContext
             e.HasIndex(s => s.BestaetigtUtc);
             e.HasIndex(s => s.SperrBisUtc);
         });
+
+        mb.Entity<AppSettings>(e =>
+        {
+            e.HasKey(s => s.Id);
+        });
     }
+}
+
+/// <summary>
+/// Globale Einstellungen der Anwendung. Eine Tabelle mit nur einem Datensatz
+/// (Id=1). Wird beim Start angelegt, falls noch nicht vorhanden.
+/// </summary>
+public class AppSettings
+{
+    public int Id { get; set; } = 1;
+
+    /// <summary>Sperrfrist in Tagen — Default 21.</summary>
+    public int SperreTage { get; set; } = 21;
+
+    public DateTime ZuletztGeaendertUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class AppUser

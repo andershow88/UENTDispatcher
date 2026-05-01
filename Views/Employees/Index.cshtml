@@ -172,6 +172,26 @@
         <div class="modal-body">
             <div class="login-error" id="empError" style="display:none;"></div>
             <input type="hidden" id="empId" />
+
+            <div class="form-row">
+                <label class="form-label">Foto</label>
+                <div class="emp-modal-photo">
+                    <div class="emp-modal-avatar" id="empModalAvatar">
+                        <img id="empModalAvatarImg" alt="" style="display:none;" />
+                        <span class="emp-modal-avatar-initials" id="empModalAvatarInitials">?</span>
+                    </div>
+                    <div class="emp-modal-photo-actions">
+                        <input type="file" id="empModalPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;" />
+                        <button type="button" class="btn-mc btn-mc-ghost" onclick="document.getElementById('empModalPhotoInput').click()">
+                            <i class="bi bi-camera"></i> Foto wählen
+                        </button>
+                        <button type="button" class="btn-mc btn-mc-danger" id="empModalPhotoRemoveBtn" style="display:none;" onclick="onModalPhotoRemove()" title="Foto entfernen">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-row">
                 <label class="form-label" for="empVorname">Vorname</label>
                 <input type="text" id="empVorname" class="form-control" />
@@ -204,6 +224,31 @@
         this.classList.toggle('on', empAktivState);
     });
 
+    // ── Foto-State im Modal ─────────────────────────────────────────────
+    // 'unchanged': bestehendes Foto bleibt (Edit-Default), 'remove': vorhandenes
+    // Foto wird beim Speichern geloescht, 'upload': neuer Crop-Blob wird beim
+    // Speichern hochgeladen.
+    var modalPhotoState = 'unchanged';
+    var modalPhotoBlob = null;
+
+    function setModalAvatar(src, initials) {
+        var img = document.getElementById('empModalAvatarImg');
+        var initEl = document.getElementById('empModalAvatarInitials');
+        var removeBtn = document.getElementById('empModalPhotoRemoveBtn');
+        if (src) {
+            img.src = src;
+            img.style.display = 'block';
+            initEl.style.display = 'none';
+            removeBtn.style.display = '';
+        } else {
+            img.removeAttribute('src');
+            img.style.display = 'none';
+            initEl.textContent = initials || '?';
+            initEl.style.display = '';
+            removeBtn.style.display = 'none';
+        }
+    }
+
     function openCreate() {
         document.getElementById('empModalTitle').textContent = 'Neue Person hinzufügen';
         document.getElementById('empId').value = '';
@@ -211,6 +256,9 @@
         empAktivState = true;
         document.getElementById('empAktivSwitch').classList.add('on');
         document.getElementById('empError').style.display = 'none';
+        modalPhotoState = 'unchanged';
+        modalPhotoBlob = null;
+        setModalAvatar(null, '?');
         document.getElementById('empModal').classList.add('open');
         setTimeout(() => document.getElementById('empVorname').focus(), 100);
     }
@@ -223,13 +271,57 @@
         empAktivState = row.dataset.aktiv === '1';
         document.getElementById('empAktivSwitch').classList.toggle('on', empAktivState);
         document.getElementById('empError').style.display = 'none';
+        modalPhotoState = 'unchanged';
+        modalPhotoBlob = null;
+        // Aktuelles Foto laden, falls vorhanden — sonst Initialen anzeigen
+        var holder = document.getElementById('emp-photo-' + id);
+        var hasPhoto = holder && holder.tagName === 'IMG';
+        var initials = (row.dataset.vorname || '?').substring(0, 2).toUpperCase();
+        if (hasPhoto) {
+            setModalAvatar('/Employees/Photo/' + id + '?v=' + Date.now(), initials);
+        } else {
+            setModalAvatar(null, initials);
+        }
         document.getElementById('empModal').classList.add('open');
         setTimeout(() => document.getElementById('empVorname').focus(), 100);
     }
 
     function closeEmpModal() {
         document.getElementById('empModal').classList.remove('open');
+        modalPhotoState = 'unchanged';
+        modalPhotoBlob = null;
     }
+
+    window.onModalPhotoRemove = function () {
+        modalPhotoState = 'remove';
+        modalPhotoBlob = null;
+        var vorname = document.getElementById('empVorname').value.trim();
+        var initials = (vorname || '?').substring(0, 2).toUpperCase();
+        setModalAvatar(null, initials);
+    };
+
+    // File-Input im Modal → oeffnet Cropper im "pending" Modus
+    document.getElementById('empModalPhotoInput').addEventListener('change', function (e) {
+        if (!e.target.files || e.target.files.length === 0) return;
+        var file = e.target.files[0];
+        if (file.size > 5 * 1024 * 1024) {
+            document.getElementById('empError').textContent = 'Foto zu groß (max. 5 MB).';
+            document.getElementById('empError').style.display = 'block';
+            e.target.value = '';
+            return;
+        }
+        // Modus 'pending' → Cropper speichert Blob lokal, kein direkter Upload
+        var empId = parseInt(document.getElementById('empId').value, 10) || 0;
+        openCropper(file, empId, 'pending');
+        e.target.value = '';
+    });
+
+    // Vom Cropper aufgerufen, wenn Mode = 'pending' und User hat "Übernehmen" geklickt.
+    window.onCropperPendingResult = function (blob, dataUrl) {
+        modalPhotoState = 'upload';
+        modalPhotoBlob = blob;
+        setModalAvatar(dataUrl, '?');
+    };
 
     async function saveEmp() {
         var id = document.getElementById('empId').value;
@@ -256,6 +348,25 @@
                 err.style.display = 'block';
                 return;
             }
+            var savedId = id ? parseInt(id, 10) : data.id;
+
+            // Foto-Aenderungen erst NACH erfolgreichem Speichern anwenden
+            if (modalPhotoState === 'upload' && modalPhotoBlob) {
+                var fd = new FormData();
+                fd.append('id', savedId);
+                fd.append('file', modalPhotoBlob, 'photo.jpg');
+                try { await fetch('/Employees/UploadPhoto', { method: 'POST', body: fd }); }
+                catch (e) { /* Foto fehlgeschlagen, Person bleibt aber gespeichert */ }
+            } else if (modalPhotoState === 'remove' && id) {
+                try {
+                    await fetch('/Employees/DeletePhoto', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: savedId })
+                    });
+                } catch (e) { /* Trotzdem reload */ }
+            }
+
             location.reload();
         } catch (e) {
             err.textContent = 'Verbindungsfehler: ' + e.message;
@@ -316,8 +427,12 @@
     });
 
     // ── Cropper: Pan + Zoom + Save als 400x400 JPEG ─────────────────────
+    // mode='upload': direkter Upload an Server (Avatar-Klick in Liste)
+    // mode='pending': Crop-Blob via window.onCropperPendingResult zurueck-
+    //   geben, kein Upload — wird vom emp-Modal beim Speichern verarbeitet.
     var cropperState = {
         targetEmpId: null,
+        mode: 'upload',
         dataUrl: null,
         naturalW: 0, naturalH: 0,
         tx: 0, ty: 0,
@@ -332,8 +447,9 @@
         return document.getElementById('cropperStage').clientWidth;
     }
 
-    function openCropper(file, empId) {
+    function openCropper(file, empId, mode) {
         cropperState.targetEmpId = empId;
+        cropperState.mode = mode || 'upload';
         var reader = new FileReader();
         reader.onload = function (ev) {
             cropperState.dataUrl = ev.target.result;
@@ -468,6 +584,25 @@
         var img = new Image();
         img.onload = function () {
             ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, output, output);
+
+            // Pending-Modus: Blob ans emp-Modal zurueckreichen, kein Upload
+            if (cropperState.mode === 'pending') {
+                canvas.toBlob(function (blob) {
+                    if (!blob) {
+                        document.getElementById('cropperError').textContent = 'Bild konnte nicht erzeugt werden.';
+                        document.getElementById('cropperError').style.display = 'block';
+                        return;
+                    }
+                    var dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                    if (typeof window.onCropperPendingResult === 'function') {
+                        window.onCropperPendingResult(blob, dataUrl);
+                    }
+                    closeCropper();
+                }, 'image/jpeg', 0.92);
+                return;
+            }
+
+            // Upload-Modus: direkter Server-Upload (Avatar-Klick in Liste)
             canvas.toBlob(async function (blob) {
                 if (!blob) {
                     document.getElementById('cropperError').textContent = 'Bild konnte nicht erzeugt werden.';

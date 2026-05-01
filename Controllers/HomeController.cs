@@ -16,6 +16,7 @@ public class HomeController : Controller
         // Nachname wird nirgends mehr angezeigt.
         var statuses = await _svc.ListEmployeeStatusesAsync();
         ViewBag.Statuses = statuses;
+        ViewBag.SperreTage = await _svc.GetSperreTageAsync();
         return View();
     }
 }

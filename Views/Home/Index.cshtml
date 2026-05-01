@@ -2,6 +2,7 @@
     ViewData["Title"] = "Glücksrad";
     var statuses = ViewBag.Statuses as List<UENTDispatcher.Services.EmployeeStatus> ?? new();
     var statusJson = System.Text.Json.JsonSerializer.Serialize(statuses);
+    var sperreTage = ViewBag.SperreTage as int? ?? 21;
 }
 
 <div class="app-page-header">
@@ -9,7 +10,7 @@
         <div class="app-page-title">🎯 Dispatcher der Woche auslosen</div>
         <div class="app-page-subtitle">
             Eine Person wird zufällig ausgewählt und übernimmt für die nächste Woche das Service Desk.
-            Aktuelle Sperrfrist: <strong>21 Tage</strong>.
+            Aktuelle Sperrfrist: <strong>@sperreTage Tage</strong>.
         </div>
     </div>
     <div>
@@ -43,7 +44,7 @@
                 <div class="toggle-text-main"><i class="bi bi-shield-exclamation"></i> Sperrliste ignorieren</div>
                 <div class="toggle-text-hint">
                     Aktiviert → auch gesperrte Personen drehen mit. Wird eine gesperrte Person bestätigt,
-                    entsteht ein <strong>neuer Eintrag</strong> im Verlauf und die Sperre wird auf <strong>frische 21 Tage</strong> gesetzt.
+                    entsteht ein <strong>neuer Eintrag</strong> im Verlauf und die Sperre wird auf <strong>frische @sperreTage Tage</strong> gesetzt.
                 </div>
             </div>
             <button type="button" id="toggleBlacklist" class="toggle-switch" aria-label="Sperrliste ignorieren"></button>
@@ -111,7 +112,7 @@
         (function () {
             var initial = @Html.Raw(statusJson);
             var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-            UENTWheel.init(initial, token);
+            UENTWheel.init(initial, token, @sperreTage);
         })();
     </script>
 }

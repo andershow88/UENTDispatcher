@@ -20,7 +20,8 @@
         spinning: false,
         winner: null,
         blacklistIgnoriert: false,
-        antiforgeryToken: null
+        antiforgeryToken: null,
+        sperreTage: 21          // wird via init() gesetzt
     };
 
     // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
@@ -28,7 +29,7 @@
     // doppelte Requests und 404-Loops.
     var photoCache = {};
 
-    function init(initialStatus, antiforgeryToken) {
+    function init(initialStatus, antiforgeryToken, sperreTage) {
         state.candidates = (initialStatus || []).map(s => ({
             id: s.Id || s.id,
             anzeigename: (s.Vorname || s.vorname || '').trim(),  // nur Vorname
@@ -36,6 +37,7 @@
             restTage: s.RestTage || s.restTage || 0
         }));
         state.antiforgeryToken = antiforgeryToken;
+        if (typeof sperreTage === 'number' && sperreTage >= 0) state.sperreTage = sperreTage;
         recomputeEligible();
         drawWheel();
         updateStatusPanel();
@@ -563,7 +565,7 @@
         if (winner.gesperrt) {
             lockHint.innerHTML = '<i class="bi bi-shield-exclamation"></i> Eigentlich noch <strong>' +
                 winner.restTage + ' Tag(e)</strong> gesperrt — Override aktiv. ' +
-                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische 21 Tage gesetzt.';
+                'Bei Bestätigung wird ein <strong>neuer Eintrag</strong> im Verlauf erstellt und die Sperre auf frische ' + state.sperreTage + ' Tage gesetzt.';
             lockHint.style.display = 'block';
         } else {
             lockHint.style.display = 'none';

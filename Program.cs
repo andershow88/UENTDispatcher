@@ -143,14 +143,22 @@ using (var scope = app.Services.CreateScope())
             // Beispiel-Mitarbeiter fuer den Erststart — Pflege via /Employees-Seite
             // (Admin-Login). Beliebig editierbar/loeschbar nach dem ersten Login.
             db.Employees.AddRange(
-                new Employee { Vorname = "Anna", Nachname = "Beispiel", IstAktiv = true },
-                new Employee { Vorname = "Ben", Nachname = "Demo", IstAktiv = true },
-                new Employee { Vorname = "Carla", Nachname = "Muster", IstAktiv = true },
-                new Employee { Vorname = "Daniel", Nachname = "Test", IstAktiv = true },
-                new Employee { Vorname = "Eva", Nachname = "Probe", IstAktiv = true },
-                new Employee { Vorname = "Felix", Nachname = "Pilot", IstAktiv = true });
+                new Employee { Vorname = "Anna", Nachname = string.Empty, IstAktiv = true },
+                new Employee { Vorname = "Ben", Nachname = string.Empty, IstAktiv = true },
+                new Employee { Vorname = "Carla", Nachname = string.Empty, IstAktiv = true },
+                new Employee { Vorname = "Daniel", Nachname = string.Empty, IstAktiv = true },
+                new Employee { Vorname = "Eva", Nachname = string.Empty, IstAktiv = true },
+                new Employee { Vorname = "Felix", Nachname = string.Empty, IstAktiv = true });
             await db.SaveChangesAsync();
             log.LogInformation("Beispiel-Mitarbeiter angelegt (6 Personen).");
+        }
+
+        // Default-Einstellungen, falls noch keine Zeile existiert
+        if (!await db.AppSettings.AnyAsync())
+        {
+            db.AppSettings.Add(new AppSettings { Id = 1, SperreTage = 21 });
+            await db.SaveChangesAsync();
+            log.LogInformation("AppSettings initialisiert (SperreTage=21).");
         }
     }
     catch (Exception ex)
@@ -169,12 +177,14 @@ static async Task TryEnsureColumnsAsync(AppDbContext db, ILogger log)
     var pgStmts = new[]
     {
         "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoBytes\" bytea NULL",
-        "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoMimeType\" varchar(50) NULL"
+        "ALTER TABLE \"Employees\" ADD COLUMN IF NOT EXISTS \"PhotoMimeType\" varchar(50) NULL",
+        "CREATE TABLE IF NOT EXISTS \"AppSettings\" (\"Id\" int PRIMARY KEY, \"SperreTage\" int NOT NULL DEFAULT 21, \"ZuletztGeaendertUtc\" timestamp without time zone NOT NULL DEFAULT NOW())"
     };
     var sqliteStmts = new[]
     {
         "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoBytes\" BLOB NULL",
-        "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoMimeType\" TEXT NULL"
+        "ALTER TABLE \"Employees\" ADD COLUMN \"PhotoMimeType\" TEXT NULL",
+        "CREATE TABLE IF NOT EXISTS \"AppSettings\" (\"Id\" INTEGER PRIMARY KEY, \"SperreTage\" INTEGER NOT NULL DEFAULT 21, \"ZuletztGeaendertUtc\" TEXT NOT NULL DEFAULT (datetime('now')))"
     };
 
     foreach (var sql in isPg ? pgStmts : sqliteStmts)

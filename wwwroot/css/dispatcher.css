@@ -892,6 +892,46 @@ a:hover { color: var(--mc-petrol-dark); }
     white-space: nowrap;
 }
 
+/* Foto-Block im Edit-/Create-Modal */
+.emp-modal-photo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.emp-modal-avatar {
+    position: relative;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--mc-petrol), var(--mc-petrol-light));
+    color: #fff;
+    border: 3px solid #fff;
+    box-shadow: 0 3px 10px rgba(0,0,0,.10);
+    flex-shrink: 0;
+    user-select: none;
+}
+[data-theme="dark"] .emp-modal-avatar {
+    border-color: var(--mc-bg-card);
+}
+.emp-modal-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+.emp-modal-avatar-initials {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: .04em;
+}
+.emp-modal-photo-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
 /* ════════════════════════════ Wheel Vollbild-Modus ═══════════════════════
    Aktiviert ueber body.wheel-fs (von wheel.js gesetzt). Versteckt Sidebar,
    Status-Spalte, Toggle-Row und Page-Header — Wheel und Result fuellen

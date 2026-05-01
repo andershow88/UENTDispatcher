@@ -1,0 +1,112 @@
+@model UENTDispatcher.Models.AppSettings
+@{
+    ViewData["Title"] = "Einstellungen";
+}
+
+<div class="app-page-header">
+    <div>
+        <div class="app-page-title">⚙️ Einstellungen</div>
+        <div class="app-page-subtitle">
+            Parameter für die Auslosung — Änderungen wirken sich sofort auf die ganze Anwendung aus.
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <div class="col-lg-7">
+        <div class="mc-card">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-shield-check"></i> Sperrfrist</div>
+            </div>
+            <div class="mc-card-body">
+                <div class="form-row">
+                    <label class="form-label" for="sperreTage">Sperrfrist (Tage)</label>
+                    <div style="display:flex; align-items:center; gap:.8rem; flex-wrap:wrap;">
+                        <input type="number" id="sperreTage" class="form-control"
+                               value="@Model.SperreTage" min="0" max="365" step="1"
+                               style="max-width: 160px;" />
+                        <span class="muted" style="font-size:.85rem;">
+                            Standard: 21 Tage. Erlaubt: 0–365.
+                        </span>
+                    </div>
+                    <div style="font-size:.82rem; color: var(--mc-text-muted); margin-top:.6rem; line-height:1.5;">
+                        Diese Anzahl Tage ist eine Person nach einer bestätigten Auswahl im normalen Pool gesperrt.
+                        Bei aktivem Override startet die Sperre frisch — kein Aufschlag der Restzeit.
+                        Bestehende Sperren bleiben unverändert (sie wurden mit dem alten Wert berechnet);
+                        nur neue Bestätigungen verwenden den hier eingestellten Wert.
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:1rem; margin-top:.4rem;">
+                    <button type="button" class="btn-mc btn-mc-primary" id="saveBtn" onclick="saveSettings()">
+                        <i class="bi bi-check2"></i> Speichern
+                    </button>
+                    <span id="saveStatus" style="font-size:.86rem;"></span>
+                </div>
+                <div class="login-error" id="saveError" style="display:none; margin-top:.8rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="mc-card">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-info-circle"></i> Wirkung</div>
+            </div>
+            <div class="mc-card-body" style="font-size:.9rem; line-height:1.6;">
+                <p style="margin-top:0;">Der hier gesetzte Wert greift in folgenden Bereichen sofort:</p>
+                <ul style="padding-left:1.1rem; margin:0;">
+                    <li>Bei jeder neuen <strong>Bestätigung</strong> wird die Sperre auf die aktuelle Tagesanzahl gesetzt.</li>
+                    <li>Hinweis-Texte auf der Glücksrad-Seite, im Override-Toggle und im Bestätigungs-Modal verwenden den neuen Wert.</li>
+                    <li>Verlaufs-Einträge enthalten weiterhin den damals geltenden Wert (kein Rückwirken).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    async function saveSettings() {
+        var input = document.getElementById('sperreTage');
+        var val = parseInt(input.value, 10);
+        var btn = document.getElementById('saveBtn');
+        var status = document.getElementById('saveStatus');
+        var err = document.getElementById('saveError');
+        err.style.display = 'none';
+        status.textContent = '';
+
+        if (isNaN(val) || val < 0 || val > 365) {
+            err.textContent = 'Bitte eine ganze Zahl zwischen 0 und 365 eingeben.';
+            err.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Speichere…';
+        try {
+            var res = await fetch('/Settings/Update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sperreTage: val })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                err.textContent = data.error || 'Speichern fehlgeschlagen.';
+                err.style.display = 'block';
+            } else {
+                status.innerHTML = '<span style="color: var(--mc-success);"><i class="bi bi-check2-circle"></i> Gespeichert — Sperrfrist liegt jetzt bei ' + data.sperreTage + ' Tagen.</span>';
+                setTimeout(function () { status.textContent = ''; }, 4000);
+            }
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2"></i> Speichern';
+        }
+    }
+</script>
+}

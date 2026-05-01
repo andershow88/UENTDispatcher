@@ -10,7 +10,7 @@ namespace UENTDispatcher.Services;
 /// </summary>
 public class DispatcherService
 {
-    public const int SperreTage = 21;
+    public const int DefaultSperreTage = 21;
 
     private readonly AppDbContext _db;
     private readonly ILogger<DispatcherService> _log;
@@ -20,6 +20,13 @@ public class DispatcherService
     {
         _db = db;
         _log = log;
+    }
+
+    /// <summary>Liest die aktuelle Sperrfrist aus den AppSettings (Fallback 21).</summary>
+    public async Task<int> GetSperreTageAsync(CancellationToken ct = default)
+    {
+        var s = await _db.AppSettings.AsNoTracking().FirstOrDefaultAsync(ct);
+        return s?.SperreTage ?? DefaultSperreTage;
     }
 
     /// <summary>
@@ -128,10 +135,12 @@ public class DispatcherService
                 null);
         }
 
-        // Frische 21-Tage-Sperre — unabhaengig davon, ob die Person zuvor noch
-        // gesperrt war. Override-Auswahlen erzeugen einen ZUSAETZLICHEN Eintrag
-        // im Verlauf; alte Eintraege bleiben fuer die Historie erhalten.
-        var neueSperreUtc = now.AddDays(SperreTage);
+        // Frische Sperre laut aktueller Einstellung (Default 21 Tage) —
+        // unabhaengig davon, ob die Person zuvor noch gesperrt war. Override-
+        // Auswahlen erzeugen einen ZUSAETZLICHEN Eintrag im Verlauf; alte
+        // Eintraege bleiben fuer die Historie erhalten.
+        var sperreTage = await GetSperreTageAsync(ct);
+        var neueSperreUtc = now.AddDays(sperreTage);
 
         var auswahl = new DispatcherSelection
         {
