@@ -17,10 +17,10 @@
         '#C2185B', // Magenta
         '#C8A96E', // Gold
         '#1565C0', // Saphir-Blau
-        '#39747A', // Petrol-light
+        '#7C3AED', // Violet
         '#E91E63', // Magenta-vibrant
-        '#B5945E', // Gold-dark
-        '#42A5F5'  // Blau-light
+        '#42A5F5', // Blau-light
+        '#A78BFA'  // Violet-light
     ];
 
     var state = {
@@ -921,13 +921,13 @@
     };
 
     // ── Konfetti: Balloon-Pop-Burst + Dauer-Regen ──────────────────────────
-    // CONFETTI_COLORS zieht alle Bank-Akzente zusammen: Petrol, Gold, Magenta,
-    // Saphir-Blau plus ein bisschen Erfolgsgruen.
+    // CONFETTI_COLORS: Schwerpunkt jetzt auf Magenta, Blau und Violet —
+    // weniger Petrol-Gruen.
     var CONFETTI_COLORS = [
-        '#C8A96E', '#00515A', '#39747A', '#D4BB8A',
-        '#10b981',
-        '#C2185B', '#E91E63',
-        '#1565C0', '#42A5F5'
+        '#C8A96E', '#D4BB8A',                          // Gold-Akzente
+        '#C2185B', '#E91E63', '#EC407A',               // Magenta-Familie
+        '#1565C0', '#42A5F5', '#5DADE2',               // Blau-Familie
+        '#7C3AED', '#A78BFA', '#C4B5FD'                // Violet-Familie
     ];
 
     function spawnBurstPiece() {

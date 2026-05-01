@@ -82,13 +82,22 @@
     --mc-text-dark:    #f1f5f9;
     --mc-text-muted:   #8a99a8;
 
-    /* Akzent-Farben kraeftiger im Dark Mode */
+    /* Petrol → Violet im Dark Mode (das Gruen war zu dominant). Cascade
+       greift fuer alle var(--mc-petrol)-Verwendungen automatisch. */
+    --mc-petrol:       #7C3AED;
+    --mc-petrol-dark:  #5B21B6;
+    --mc-petrol-light: #A78BFA;
+
+    /* Akzent-Farben kraeftiger im Dark Mode — Magenta + Blau staerker */
     --mc-accent-blue:        #5DADE2;
-    --mc-accent-blue-soft:   rgba(93, 173, 226, .15);
-    --mc-accent-blue-tint:   rgba(93, 173, 226, .07);
+    --mc-accent-blue-soft:   rgba(93, 173, 226, .22);
+    --mc-accent-blue-tint:   rgba(93, 173, 226, .12);
     --mc-accent-magenta:     #EC407A;
-    --mc-accent-magenta-soft: rgba(236, 64, 122, .15);
-    --mc-accent-magenta-tint: rgba(236, 64, 122, .07);
+    --mc-accent-magenta-soft: rgba(236, 64, 122, .22);
+    --mc-accent-magenta-tint: rgba(236, 64, 122, .12);
+    --mc-accent-violet:      #A78BFA;
+    --mc-accent-violet-soft: rgba(167, 139, 250, .22);
+    --mc-accent-violet-tint: rgba(167, 139, 250, .12);
 
     /* Status-Hintergruende dezenter im Dunkeln */
     --mc-success-bg:   rgba(16,185,129,.15);
@@ -100,11 +109,11 @@
     --mc-shadow-lg:    0 10px 25px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3);
     --mc-shadow-xl:    0 24px 50px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.35);
 
-    /* Body mit kraeftigeren Farb-Spotlights */
+    /* Body: Triad Blau / Violet / Magenta (kein Petrol-Gruen mehr) */
     --mc-bg-grad:
-        radial-gradient(circle at 0% 0%, rgba(93, 173, 226, .14), transparent 45%),
-        radial-gradient(circle at 100% 100%, rgba(236, 64, 122, .16), transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(0, 81, 90, .08), transparent 70%),
+        radial-gradient(circle at 0% 0%, rgba(93, 173, 226, .18), transparent 45%),
+        radial-gradient(circle at 100% 100%, rgba(236, 64, 122, .20), transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(124, 58, 237, .15), transparent 60%),
         linear-gradient(180deg, #0e1318 0%, #131a20 100%);
 
     /* Theme-Helfer fuer Komponenten mit individuellem Hintergrund */
@@ -116,19 +125,20 @@
     --mc-card-input-bg: #0f1419;
     --mc-modal-footer-bg: #0d1318;
     --mc-wheel-frame-grad:
-        radial-gradient(circle at 25% 20%, rgba(93, 173, 226, .14), transparent 55%),
-        radial-gradient(circle at 75% 80%, rgba(236, 64, 122, .14), transparent 55%),
-        radial-gradient(circle at 50% 30%, rgba(200,169,110,.12), transparent 60%),
+        radial-gradient(circle at 25% 20%, rgba(93, 173, 226, .18), transparent 55%),
+        radial-gradient(circle at 75% 80%, rgba(236, 64, 122, .18), transparent 55%),
+        radial-gradient(circle at 50% 50%, rgba(124, 58, 237, .15), transparent 60%),
+        radial-gradient(circle at 50% 30%, rgba(200,169,110,.10), transparent 60%),
         linear-gradient(180deg, #1a242b 0%, #11181d 100%);
     --mc-wheel-result-grad:
-        linear-gradient(135deg, rgba(93, 173, 226, .18), rgba(236, 64, 122, .18));
+        linear-gradient(135deg, rgba(93, 173, 226, .24), rgba(167, 139, 250, .20), rgba(236, 64, 122, .24));
     --mc-confirm-winner-grad:
-        linear-gradient(135deg, rgba(200,169,110,.18), rgba(236, 64, 122, .14));
+        linear-gradient(135deg, rgba(200,169,110,.18), rgba(236, 64, 122, .18));
     --mc-app-user-grad:
         linear-gradient(135deg,
-            rgba(93, 173, 226, .15) 0%,
-            rgba(0, 81, 90, .15) 50%,
-            rgba(236, 64, 122, .15) 100%);
+            rgba(93, 173, 226, .22) 0%,
+            rgba(124, 58, 237, .22) 50%,
+            rgba(236, 64, 122, .22) 100%);
     --mc-toggle-track: #2c3a47;
     --mc-canvas-empty-bg: #1a232a;
 }
@@ -685,16 +695,17 @@ a:hover { color: var(--mc-petrol-dark); }
 .login-stage {
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
     padding: 2rem 1rem;
-    background: radial-gradient(ellipse at top, #1a3a40 0%, #0e2329 60%, #0a1d22 100%);
+    background: radial-gradient(ellipse at top, #1f1838 0%, #0f0e22 60%, #0a0a1a 100%);
     position: relative; overflow: hidden;
 }
 .login-stage::before {
     content: ''; position: absolute; inset: 0;
     background:
         radial-gradient(circle at 15% 20%, rgba(200, 169, 110, .14), transparent 45%),
-        radial-gradient(circle at 85% 80%, rgba(236, 64, 122, .14), transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(93, 173, 226, .10), transparent 55%),
-        radial-gradient(circle at 75% 25%, rgba(0, 81, 90, .14), transparent 55%);
+        radial-gradient(circle at 85% 80%, rgba(236, 64, 122, .20), transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(93, 173, 226, .16), transparent 55%),
+        radial-gradient(circle at 75% 25%, rgba(124, 58, 237, .18), transparent 55%),
+        radial-gradient(circle at 25% 75%, rgba(167, 139, 250, .14), transparent 50%);
 }
 .login-card {
     position: relative; z-index: 2;
@@ -1376,18 +1387,36 @@ body.wheel-fs .wheel-pointer {
     color: var(--mc-text);
 }
 [data-theme="dark"] .app-nav-link:hover {
-    background: rgba(200,169,110,.08);
-    color: var(--mc-gold-light);
+    background: linear-gradient(135deg, rgba(124, 58, 237, .14), rgba(236, 64, 122, .10));
+    color: var(--mc-petrol-light);
 }
-[data-theme="dark"] .app-nav-link:hover i { color: var(--mc-gold); }
+[data-theme="dark"] .app-nav-link:hover i { color: var(--mc-petrol-light); }
 [data-theme="dark"] .app-nav-link.active {
     background:
         linear-gradient(135deg,
-            rgba(93, 173, 226, .18) 0%,
-            rgba(0, 81, 90, .25) 50%,
-            rgba(236, 64, 122, .22) 100%);
+            rgba(93, 173, 226, .25) 0%,
+            rgba(124, 58, 237, .28) 50%,
+            rgba(236, 64, 122, .25) 100%);
     color: var(--mc-gold-light);
     box-shadow: inset 3px 0 0 var(--mc-gold);
+}
+
+/* Im Dark Mode bekommen Petrol-Buttons Violet-Schatten statt
+   Petrol-Gruen-Schatten (rgba ist hardcoded, daher hier Override). */
+[data-theme="dark"] .btn-mc-primary {
+    box-shadow: 0 4px 14px rgba(124, 58, 237, .40);
+}
+[data-theme="dark"] .btn-mc-primary:hover {
+    box-shadow: 0 8px 22px rgba(124, 58, 237, .50);
+}
+[data-theme="dark"] .wheel-hub {
+    box-shadow: 0 6px 18px rgba(124, 58, 237, .50), inset 0 2px 0 rgba(255,255,255,.15);
+}
+[data-theme="dark"] .emp-avatar:hover {
+    box-shadow: 0 6px 18px rgba(124, 58, 237, .35);
+}
+[data-theme="dark"] .emp-table tbody tr:hover {
+    background: rgba(124, 58, 237, .10);
 }
 [data-theme="dark"] .app-nav-link.active i { color: var(--mc-gold); }
 
