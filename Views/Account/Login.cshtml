@@ -124,6 +124,34 @@
         }
     }
 
+    // ── Logo-Regen: kleine Merkur-Logos fallen rotierend ─────────────────
+    function spawnLogoDrop() {
+        if (document.querySelectorAll('.logo-rain').length > 40) return;
+        var img = document.createElement('img');
+        img.src = '/images/merkur-logo.svg';
+        img.alt = '';
+        img.draggable = false;
+        img.className = 'logo-rain';
+        var size = 22 + Math.floor(Math.random() * 38);     // 22..60 px
+        var duration = 9 + Math.random() * 8;                // 9..17 s
+        var opacity = 0.07 + Math.random() * 0.18;           // 0.07..0.25
+        var rot = 360 + Math.floor(Math.random() * 1080);    // 360..1440 deg
+        var direction = Math.random() < 0.5 ? -1 : 1;
+        img.style.left = (Math.random() * 100) + 'vw';
+        img.style.width = size + 'px';
+        img.style.opacity = opacity;
+        img.style.animationDuration = duration + 's';
+        img.style.setProperty('--rain-rot', (rot * direction) + 'deg');
+        document.body.appendChild(img);
+        setTimeout(function () { if (img.parentNode) img.remove(); }, duration * 1000 + 300);
+    }
+    // Initialer Schwung, damit's nicht leer wirkt
+    for (var i = 0; i < 8; i++) {
+        setTimeout(spawnLogoDrop, i * 250);
+    }
+    // Konstanter Nachschub
+    setInterval(spawnLogoDrop, 380);
+
     document.getElementById('loginForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         var err = document.getElementById('loginError');

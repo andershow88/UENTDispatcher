@@ -795,6 +795,57 @@ a:hover { color: var(--mc-petrol-dark); }
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
 }
 
+/* ════════════════════════════ Confetti-Burst (Balloon-Pop) ════════════════
+   Konfetti, das radial vom Bildschirm-Mittelpunkt explodiert und dann durch
+   Schwerkraft nach unten driftet. Variablen --burst-dx / --burst-dy werden
+   per JS pro Stueck inline gesetzt. */
+.confetti-burst {
+    position: fixed;
+    width: 10px; height: 16px;
+    top: 50vh; left: 50vw;
+    pointer-events: none;
+    z-index: 1500;
+    transform: translate(-50%, -50%);
+    animation: confettiBurstFly cubic-bezier(.18, .65, .25, 1) forwards;
+}
+@keyframes confettiBurstFly {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+        opacity: 1;
+    }
+    35% {
+        transform:
+            translate(calc(-50% + var(--burst-dx, 0px) * 0.55),
+                      calc(-50% + var(--burst-dy, 0px) * 0.55))
+            rotate(360deg);
+        opacity: 1;
+    }
+    100% {
+        transform:
+            translate(calc(-50% + var(--burst-dx, 0px)),
+                      calc(-50% + var(--burst-dy, 0px) + 55vh))
+            rotate(960deg);
+        opacity: 0;
+    }
+}
+
+/* ════════════════════════════ Logo-Regen (Login-Seite) ════════════════════
+   Kleine Merkur-Logos fallen rotierend von oben durch den Bildschirm. */
+.logo-rain {
+    position: fixed;
+    top: -120px;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    z-index: 1;
+    animation: logoRainFall linear forwards;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.45));
+}
+@keyframes logoRainFall {
+    0%   { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(calc(100vh + 240px)) rotate(var(--rain-rot, 720deg)); }
+}
+
 .spin-throb {
     animation: throb 1.4s ease-in-out infinite;
 }

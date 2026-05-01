@@ -36,7 +36,9 @@
         operationToken: 0,      // monoton steigender Token: alte async-Callbacks erkennen
         activeFlyEl: null,      // aktuell fliegendes Foto-Element (wird bei Cancel entfernt)
         flyPhaseBTimer: null,
-        flyPhaseCTimer: null
+        flyPhaseCTimer: null,
+        confettiRainTimer: null,
+        confettiBurstTimer: null
     };
 
     // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
@@ -88,8 +90,8 @@
     }
 
     // Foto-Flug aufraeumen — Timer canceln, fliegendes Element entfernen,
-    // Modal-Photo-Container ausblenden. Wird von cancelSpin, Confirm- und
-    // Respin-Pfaden gleichermassen aufgerufen.
+    // Modal-Photo-Container ausblenden, Konfetti-Streams stoppen. Wird von
+    // cancelSpin, Confirm- und Respin-Pfaden gleichermassen aufgerufen.
     function cleanupFly() {
         if (state.flyPhaseBTimer) { clearTimeout(state.flyPhaseBTimer); state.flyPhaseBTimer = null; }
         if (state.flyPhaseCTimer) { clearTimeout(state.flyPhaseCTimer); state.flyPhaseCTimer = null; }
@@ -97,6 +99,7 @@
         state.activeFlyEl = null;
         var modalPhotoContainer = document.getElementById('winnerPhotoContainer');
         if (modalPhotoContainer) modalPhotoContainer.classList.remove('visible');
+        stopContinuousConfetti();
     }
 
     // ── Cancel-Spin: harte Reset-Funktion fuer alle Fehler-/Abbruch-Situationen
@@ -695,7 +698,10 @@
         // laesst das Foto in seine Endposition fliegen.
         flyWinnerPhotoFromWheel(winner);
 
-        confetti();
+        // Dauer-Konfetti: Balloon-Pop-Burst zur Begruessung + kontinuier-
+        // licher Konfetti-Regen + alle paar Sekunden ein weiterer Mini-Pop.
+        // Stoppt automatisch via cleanupFly() bei Bestaetigen / Erneut drehen.
+        startContinuousConfetti();
     }
 
     // Setzt Foto oder Initialen im Modal-Photo-Container (Endziel).
@@ -914,27 +920,68 @@
         setTimeout(onSpin, 50);
     };
 
-    function confetti() {
-        // Konfetti zieht alle Bank-Akzente zusammen: Petrol, Gold, Magenta,
-        // Saphir-Blau plus ein bisschen Erfolgsgruen.
-        var colors = [
-            '#C8A96E', '#00515A', '#39747A', '#D4BB8A',
-            '#10b981',           // success-green Hauch
-            '#C2185B', '#E91E63', // Magenta-Familie
-            '#1565C0', '#42A5F5'  // Blau-Familie
-        ];
-        for (var i = 0; i < 60; i++) {
-            var p = document.createElement('div');
-            p.className = 'confetti-piece';
-            p.style.left = Math.random() * 100 + 'vw';
-            p.style.background = colors[Math.floor(Math.random() * colors.length)];
-            p.style.animationDelay = (Math.random() * 0.4) + 's';
-            p.style.animationDuration = (1.6 + Math.random() * 0.8) + 's';
-            p.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), 2600);
-        }
+    // ── Konfetti: Balloon-Pop-Burst + Dauer-Regen ──────────────────────────
+    // CONFETTI_COLORS zieht alle Bank-Akzente zusammen: Petrol, Gold, Magenta,
+    // Saphir-Blau plus ein bisschen Erfolgsgruen.
+    var CONFETTI_COLORS = [
+        '#C8A96E', '#00515A', '#39747A', '#D4BB8A',
+        '#10b981',
+        '#C2185B', '#E91E63',
+        '#1565C0', '#42A5F5'
+    ];
+
+    function spawnBurstPiece() {
+        var p = document.createElement('div');
+        p.className = 'confetti-burst';
+        // Radiale Richtung mit Bias nach oben (Balloon-Pop-Feeling)
+        var angle = -Math.PI + (Math.random() * Math.PI * 2);
+        var speed = 240 + Math.random() * 380;
+        var dx = Math.cos(angle) * speed;
+        var dy = Math.sin(angle) * speed - 80; // leicht nach oben
+        p.style.setProperty('--burst-dx', dx + 'px');
+        p.style.setProperty('--burst-dy', dy + 'px');
+        p.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        p.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
+        document.body.appendChild(p);
+        setTimeout(function () { if (p.parentNode) p.remove(); }, 3200);
     }
+
+    function spawnRainPiece() {
+        var p = document.createElement('div');
+        p.className = 'confetti-piece';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        p.style.animationDuration = (2.0 + Math.random() * 1.4) + 's';
+        p.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+        document.body.appendChild(p);
+        setTimeout(function () { if (p.parentNode) p.remove(); }, 3800);
+    }
+
+    function confettiBurst() {
+        for (var i = 0; i < 110; i++) spawnBurstPiece();
+    }
+
+    function startContinuousConfetti() {
+        stopContinuousConfetti();
+        confettiBurst();
+        // Dauer-Regen + alle 4 Sekunden ein neuer Mini-Burst, damit's weiter
+        // "platzend" wirkt.
+        state.confettiRainTimer = setInterval(function () {
+            for (var i = 0; i < 4; i++) spawnRainPiece();
+        }, 200);
+        state.confettiBurstTimer = setInterval(function () {
+            // Mini-Bursts (je 30 Stueck) als wiederholendes Pop-Erlebnis
+            for (var i = 0; i < 30; i++) spawnBurstPiece();
+        }, 4200);
+    }
+
+    function stopContinuousConfetti() {
+        if (state.confettiRainTimer) { clearInterval(state.confettiRainTimer); state.confettiRainTimer = null; }
+        if (state.confettiBurstTimer) { clearInterval(state.confettiBurstTimer); state.confettiBurstTimer = null; }
+    }
+
+    // Backwards-kompatible Einzel-Funktion: ein One-Shot-Burst.
+    function confetti() { confettiBurst(); }
 
     // ── HTTP-Helper ─────────────────────────────────────────────────────────
     async function postJson(url, body) {
