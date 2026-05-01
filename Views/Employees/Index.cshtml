@@ -287,6 +287,10 @@
     }
 
     function closeEmpModal() {
+        // Wenn der Cropper als "Kind-Modal" offen ist, immer mitschliessen —
+        // sonst bliebe er ohne Bezug zur Person sichtbar. Reset-Reihenfolge:
+        // erst Cropper-State weg, dann Modal-Sichtbarkeit, dann Photo-State.
+        if (typeof window.closeCropper === 'function') window.closeCropper();
         document.getElementById('empModal').classList.remove('open');
         modalPhotoState = 'unchanged';
         modalPhotoBlob = null;
@@ -691,11 +695,21 @@
     }
 
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            closeEmpModal();
-            closeEmpDeleteModal();
+        if (e.key !== 'Escape') return;
+        // Gestaffeltes Schliessen: oberstes Modal zuerst. Cropper hat
+        // hoechste z-index, also fang ihn als Erstes ab.
+        var cropperOpen = document.getElementById('cropperModal').classList.contains('open');
+        if (cropperOpen) {
             closeCropper();
+            return;
         }
+        var deleteOpen = document.getElementById('empDeleteModal').classList.contains('open');
+        if (deleteOpen) {
+            closeEmpDeleteModal();
+            return;
+        }
+        var empOpen = document.getElementById('empModal').classList.contains('open');
+        if (empOpen) closeEmpModal();
     });
 </script>
 }

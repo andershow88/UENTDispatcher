@@ -744,8 +744,11 @@ a:hover { color: var(--mc-petrol-dark); }
     border-color: rgba(245,158,11,.4);
 }
 
-/* ════════════════════════════ Cropper-Modal ══════════════════════════════ */
+/* ════════════════════════════ Cropper-Modal ══════════════════════════════
+   Cropper liegt IMMER ueber anderen Modals (z. B. dem Mitarbeiter-Anlege-/
+   Bearbeiten-Dialog), damit er bei verschachtelter Oeffnung interaktiv ist. */
 
+#cropperModal { z-index: 1200; }
 .cropper-card { max-width: 420px; }
 .cropper-stage {
     position: relative;
