@@ -1,0 +1,80 @@
+@{
+    ViewData["Title"] = "Hinweise";
+}
+
+<div class="app-page-header">
+    <div>
+        <div class="app-page-title">💡 Hinweise zur Nutzung</div>
+        <div class="app-page-subtitle">
+            Wie das Glücksrad arbeitet, was die 21-Tage-Sperre bedeutet und wie der Override-Modus funktioniert.
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <div class="col-lg-6">
+        <div class="mc-card h-100">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-bullseye"></i> So läuft eine Auslosung</div>
+            </div>
+            <div class="mc-card-body">
+                <ul style="padding-left:1.1rem; margin:0; line-height:1.7;">
+                    <li><strong>Drehen</strong> startet das Glücksrad — eine Person wird zufällig vorausgewählt.</li>
+                    <li>Die Auswahl gilt erst <strong>nach Klick auf „Bestätigen"</strong>. Bis dahin ist sie nicht im Verlauf.</li>
+                    <li>Mit <strong>„Erneut drehen"</strong> wird die laufende Vorauswahl verworfen — kein Eintrag, keine Sperre.</li>
+                    <li>Nach Bestätigung erscheint ein Erfolgs-Modal und die Person landet im Verlauf.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="mc-card h-100">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-shield-check"></i> 21-Tage-Sperre</div>
+            </div>
+            <div class="mc-card-body">
+                <ul style="padding-left:1.1rem; margin:0; line-height:1.7;">
+                    <li>Bestätigte Personen sind <strong>21 Tage gesperrt</strong> (24-Stunden-Blöcke ab Bestätigung).</li>
+                    <li>Gesperrte Personen sind im normalen Pool <strong>nicht enthalten</strong>.</li>
+                    <li>Im Status-Panel auf der Glücksrad-Seite siehst du, wer aktuell gesperrt ist und ab wann wieder verfügbar.</li>
+                    <li>Restdauer wird <strong>aufgerundet</strong> auf ganze Tage angezeigt.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="mc-card h-100">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-shield-exclamation"></i> Override „Sperrliste ignorieren"</div>
+            </div>
+            <div class="mc-card-body">
+                <ul style="padding-left:1.1rem; margin:0; line-height:1.7;">
+                    <li>Aktivieren des Schalters → auch <strong>gesperrte Personen drehen mit</strong>.</li>
+                    <li>Wird eine gesperrte Person bestätigt, entsteht ein <strong>neuer Eintrag</strong> im Verlauf.</li>
+                    <li>Die Sperre wird dabei auf <strong>frische 21 Tage</strong> zurückgesetzt — kein Aufschlag der Restzeit.</li>
+                    <li><strong>Mehrfach-Einträge</strong> derselben Person im Verlauf sind ausdrücklich erlaubt und gewollt.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="mc-card h-100">
+            <div class="mc-card-header">
+                <div class="mc-card-title"><i class="bi bi-clock-history"></i> Verlauf pflegen</div>
+            </div>
+            <div class="mc-card-body">
+                <ul style="padding-left:1.1rem; margin:0; line-height:1.7;">
+                    <li>Im <a asp-controller="Dispatcher" asp-action="Log">Verlauf</a> sind alle bestätigten Auswahlen mit Datum, Sperrfrist und Override-Markierung sichtbar.</li>
+                    <li>Einzelne Einträge können über das X-Icon am rechten Rand entfernt werden.</li>
+                    <li><strong>Admins</strong> können den gesamten Verlauf in einem Schritt löschen — damit sind auch alle laufenden Sperren aufgehoben.</li>
+                    <li>Mitarbeitende selbst pflegt man unter <a asp-controller="Employees" asp-action="Index">Mitarbeitende</a> (anlegen, bearbeiten, deaktivieren).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>

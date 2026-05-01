@@ -59,6 +59,12 @@
                     <i class="bi bi-people"></i> <span>Mitarbeitende</span>
                 </a>
             </li>
+            <li>
+                <a asp-controller="Hinweise" asp-action="Index"
+                   class="app-nav-link @(ctrl == "Hinweise" ? "active" : "")">
+                    <i class="bi bi-info-circle"></i> <span>Hinweise</span>
+                </a>
+            </li>
         </ul>
 
         @if (User.Identity?.IsAuthenticated == true)
