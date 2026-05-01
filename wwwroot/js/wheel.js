@@ -51,21 +51,37 @@
     }
 
     // ── Fullscreen-Helfer ───────────────────────────────────────────────────
-    function enterFullscreen() {
+    // animate=true → Wachstums-Animation des Rades starten (nur fuer den
+    // ersten Spin aus dem Normal-View; Re-Spins im Vollbild lassen das Rad
+    // einfach in voller Groesse drehen).
+    function enterFullscreen(animate) {
+        var wasFs = document.body.classList.contains('wheel-fs');
         document.body.classList.add('wheel-fs');
-        // Layout hat sich gerade geaendert → Canvas neu vermessen + zeichnen.
         drawWheel();
         var el = document.documentElement;
         if (el.requestFullscreen && !document.fullscreenElement) {
             el.requestFullscreen().catch(function () { /* User abgelehnt o.ae. — visueller FS reicht */ });
         }
+        if (animate && !wasFs) {
+            startGrowingAnimation();
+        }
     }
     function exitFullscreen() {
         document.body.classList.remove('wheel-fs');
+        var wrap = document.querySelector('.wheel-canvas-wrap');
+        if (wrap) wrap.classList.remove('growing');
         drawWheel();
         if (document.fullscreenElement && document.exitFullscreen) {
             document.exitFullscreen().catch(function () {});
         }
+    }
+    function startGrowingAnimation() {
+        var wrap = document.querySelector('.wheel-canvas-wrap');
+        if (!wrap) return;
+        wrap.classList.remove('growing');
+        // Force reflow, damit die CSS-Animation neu startet
+        void wrap.offsetWidth;
+        wrap.classList.add('growing');
     }
 
     function recomputeEligible() {
@@ -271,8 +287,10 @@
         }
 
         // Vollbild-Modus aktivieren — Sidebar, Status-Spalte und Toggle-Row
-        // werden ausgeblendet, Wheel fuellt das gesamte Viewport.
-        enterFullscreen();
+        // werden ausgeblendet, Wheel fuellt das gesamte Viewport. Wachstums-
+        // Animation laeuft nur beim ersten Drehen aus dem Normal-View; bei
+        // Re-Spins im bereits aktiven Vollbild wird sie uebersprungen.
+        enterFullscreen(true);
 
         state.spinning = true;
         document.getElementById('btnSpin').disabled = true;
@@ -335,19 +353,19 @@
         // Wir wollen, dass dieser Punkt unter den Pointer (bei -90°) rutscht
         // — also rotation = -(idx*sliceAngle + sliceAngle/2).
         var targetAngleDeg = -(sliceIdx * sliceAngleDeg + sliceAngleDeg / 2);
-        // Zusätzliche volle Umdrehungen für Spannung
-        var spins = 5 + Math.floor(Math.random() * 3); // 5..7
+        // Mehr Umdrehungen fuer 15-Sekunden-Spin: 12..16 volle Drehungen.
+        // Mit dem starken Ease-out passieren die meisten Drehungen frueh,
+        // danach laeuft das Rad sichtbar aus.
+        var spins = 12 + Math.floor(Math.random() * 5); // 12..16
         var finalRot = state.currentRotation;
-        // Auf Vielfache von 360 normalisieren und dann targetAngle dazu
         var base = Math.ceil((finalRot + 360) / 360) * 360;
         var newRot = base + spins * 360 + targetAngleDeg;
-        // Stelle sicher, dass es immer vorwärts rotiert
         if (newRot <= state.currentRotation) newRot += 360;
         state.currentRotation = newRot;
         canvas.style.transform = 'rotate(' + newRot + 'deg)';
 
-        // CSS-Transition steht in dispatcher.css (4.5s cubic-bezier)
-        setTimeout(onDone, 4600);
+        // CSS-Transition steht in dispatcher.css (15s cubic-bezier).
+        setTimeout(onDone, 15100);
     }
 
     function showResult(winner) {
@@ -412,26 +430,25 @@
                 btn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
                 return;
             }
-            // Vor dem Erfolgs-Modal raus aus dem Vollbild — damit der User
-            // wieder die Normalansicht sieht (Sidebar, Status-Panel).
-            exitFullscreen();
+            // Erfolgs-Modal bleibt IM Vollbildmodus zentriert ueber dem Rad —
+            // erst beim Klick auf "Schliessen" verlassen wir den Vollbild.
             confetti();
             showSuccessModal(resp.info);
 
-            // Status neu laden
-            var statusResp = await fetch('/Dispatcher/Status');
-            if (statusResp.ok) {
-                var list = await statusResp.json();
-                state.candidates = list.map(c => ({
-                    id: c.id, anzeigename: c.anzeigename,
-                    gesperrt: c.gesperrt, restTage: c.restTage
-                }));
-                recomputeEligible();
-                drawWheel();
-                updateStatusPanel();
-            }
+            // Status im Hintergrund aktualisieren, damit nach dem Schliessen
+            // alles frisch ist (Sperrlisten, Restdauer-Counter etc.).
+            try {
+                var statusResp = await fetch('/Dispatcher/Status');
+                if (statusResp.ok) {
+                    var list = await statusResp.json();
+                    state.candidates = list.map(c => ({
+                        id: c.id, anzeigename: c.anzeigename,
+                        gesperrt: c.gesperrt, restTage: c.restTage
+                    }));
+                    recomputeEligible();
+                }
+            } catch (e) { /* Modal trotzdem sauber schliessbar */ }
 
-            hideResult();
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
         } catch (e) {
@@ -452,6 +469,13 @@
 
     window.closeSuccessModal = function () {
         document.getElementById('successModal').classList.remove('open');
+        // Erst jetzt zurueck in die Normalansicht — Vollbild verlassen,
+        // Result/Spin-Buttons resetten, Status-Panel mit den frischen
+        // Daten neu rendern.
+        exitFullscreen();
+        hideResult();
+        drawWheel();
+        updateStatusPanel();
     };
 
     function confetti() {
