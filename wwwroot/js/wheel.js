@@ -39,6 +39,33 @@
         window.addEventListener('uent:theme-changed', function () {
             if (!state.spinning) drawWheel();
         });
+        // Echte Browser-Fullscreen-Aenderungen (z. B. Esc) mit unserem
+        // body.wheel-fs Status synchronisieren — Browser-Einstellungen
+        // sollen in beide Richtungen sauber zurueckgesetzt werden.
+        document.addEventListener('fullscreenchange', function () {
+            if (!document.fullscreenElement && document.body.classList.contains('wheel-fs')) {
+                document.body.classList.remove('wheel-fs');
+                if (!state.spinning) drawWheel();
+            }
+        });
+    }
+
+    // ── Fullscreen-Helfer ───────────────────────────────────────────────────
+    function enterFullscreen() {
+        document.body.classList.add('wheel-fs');
+        // Layout hat sich gerade geaendert → Canvas neu vermessen + zeichnen.
+        drawWheel();
+        var el = document.documentElement;
+        if (el.requestFullscreen && !document.fullscreenElement) {
+            el.requestFullscreen().catch(function () { /* User abgelehnt o.ae. — visueller FS reicht */ });
+        }
+    }
+    function exitFullscreen() {
+        document.body.classList.remove('wheel-fs');
+        drawWheel();
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(function () {});
+        }
     }
 
     function recomputeEligible() {
@@ -243,6 +270,10 @@
             return;
         }
 
+        // Vollbild-Modus aktivieren — Sidebar, Status-Spalte und Toggle-Row
+        // werden ausgeblendet, Wheel fuellt das gesamte Viewport.
+        enterFullscreen();
+
         state.spinning = true;
         document.getElementById('btnSpin').disabled = true;
 
@@ -335,11 +366,15 @@
 
         box.style.display = 'flex';
         document.getElementById('actionsAfterSpin').style.display = 'flex';
-        document.getElementById('btnSpin').textContent = 'Erneut drehen';
+        // Drehen-Button waehrend der Result-Phase verstecken — die Aktionen
+        // "Bestaetigen" / "Erneut drehen" stehen separat zur Verfuegung,
+        // damit nicht zwei "Erneut drehen"-Buttons nebeneinander erscheinen.
+        document.getElementById('btnSpin').style.display = 'none';
     }
     function hideResult() {
         document.getElementById('wheelResult').style.display = 'none';
         document.getElementById('actionsAfterSpin').style.display = 'none';
+        document.getElementById('btnSpin').style.display = '';
         document.getElementById('btnSpin').innerHTML = '<i class="bi bi-arrow-repeat"></i> Drehen';
         state.winner = null;
     }
@@ -377,6 +412,9 @@
                 btn.innerHTML = '<i class="bi bi-check2-circle"></i> Bestätigen';
                 return;
             }
+            // Vor dem Erfolgs-Modal raus aus dem Vollbild — damit der User
+            // wieder die Normalansicht sieht (Sidebar, Status-Panel).
+            exitFullscreen();
             confetti();
             showSuccessModal(resp.info);
 

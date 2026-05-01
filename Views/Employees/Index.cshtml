@@ -70,6 +70,36 @@
     </div>
 </div>
 
+<!-- ────────── Modal: Mitarbeiter löschen (im gleichen Stil wie Verlauf) ────────── -->
+<div class="modal-overlay" id="empDeleteModal" onclick="if(event.target===this) closeEmpDeleteModal();">
+    <div class="modal-card">
+        <div class="modal-head danger">
+            <div class="icon-circle"><i class="bi bi-trash"></i></div>
+            <div>
+                <div class="modal-title">Mitarbeiter:in löschen?</div>
+                <div class="modal-subtitle">Auch alle Verlaufseinträge dieser Person werden entfernt.</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-winner">
+                <div class="confirm-winner-name" id="empDelName">—</div>
+            </div>
+            <p style="font-size:.86rem; color:var(--mc-text-muted); margin-bottom:0;">
+                Diese Aktion kann nicht rückgängig gemacht werden. Alle bestätigten Auswahlen
+                dieser Person werden ebenfalls aus dem Verlauf entfernt — laufende Sperrfristen
+                fallen damit weg.
+            </p>
+            <div class="login-error" id="empDelError" style="display:none; margin-top:.8rem;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-mc btn-mc-ghost" onclick="closeEmpDeleteModal()">Abbrechen</button>
+            <button type="button" class="btn-mc btn-mc-danger" id="empDelConfirmBtn" onclick="performEmpDelete()">
+                <i class="bi bi-trash"></i> Endgültig löschen
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Create/Edit Modal -->
 <div class="modal-overlay" id="empModal" onclick="if(event.target===this) closeEmpModal();">
     <div class="modal-card">
@@ -180,23 +210,53 @@
         }
     }
 
-    async function onDelete(id, name) {
-        if (!confirm('Soll "' + name + '" wirklich gelöscht werden?\n\nAlle bestätigten Auswahlen dieser Person werden ebenfalls aus dem Verlauf entfernt.')) return;
+    var pendingEmpDeleteId = null;
+
+    function onDelete(id, name) {
+        pendingEmpDeleteId = id;
+        document.getElementById('empDelName').textContent = name;
+        document.getElementById('empDelError').style.display = 'none';
+        document.getElementById('empDeleteModal').classList.add('open');
+    }
+    function closeEmpDeleteModal() {
+        document.getElementById('empDeleteModal').classList.remove('open');
+        pendingEmpDeleteId = null;
+    }
+    async function performEmpDelete() {
+        if (!pendingEmpDeleteId) return;
+        var btn = document.getElementById('empDelConfirmBtn');
+        var err = document.getElementById('empDelError');
+        err.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Lösche…';
         try {
             var res = await fetch('/Employees/Delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
+                body: JSON.stringify({ id: pendingEmpDeleteId })
             });
             var data = await res.json();
             if (!data.ok) {
-                alert(data.error || 'Löschen fehlgeschlagen.');
+                err.textContent = data.error || 'Löschen fehlgeschlagen.';
+                err.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
                 return;
             }
             location.reload();
         } catch (e) {
-            alert('Verbindungsfehler: ' + e.message);
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-trash"></i> Endgültig löschen';
         }
     }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeEmpModal();
+            closeEmpDeleteModal();
+        }
+    });
 </script>
 }
