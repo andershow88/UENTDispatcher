@@ -35,6 +35,10 @@
         drawWheel();
         updateStatusPanel();
         bindUI();
+        // Bei Theme-Wechsel: Canvas neu zeichnen (Empty-State-Farben)
+        window.addEventListener('uent:theme-changed', function () {
+            if (!state.spinning) drawWheel();
+        });
     }
 
     function recomputeEligible() {
@@ -85,13 +89,18 @@
 
         var slices = state.eligible;
         if (slices.length === 0) {
-            // Leerer Zustand
+            // Leerer Zustand — Farben aus CSS-Variablen, damit Theme-aware
+            var rs = getComputedStyle(document.documentElement);
+            var emptyBg = (rs.getPropertyValue('--mc-canvas-empty-bg') || '#f3f5f8').trim();
+            var emptyBorder = (rs.getPropertyValue('--mc-border') || '#e4e7eb').trim();
+            var emptyText = (rs.getPropertyValue('--mc-text-muted') || '#8895a7').trim();
+
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#f3f5f8';
+            ctx.fillStyle = emptyBg;
             ctx.fill();
-            ctx.strokeStyle = '#e4e7eb'; ctx.lineWidth = 2; ctx.stroke();
-            ctx.fillStyle = '#8895a7';
+            ctx.strokeStyle = emptyBorder; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = emptyText;
             ctx.font = '600 14px Inter, system-ui, sans-serif';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('Keine teilnehmenden Personen', cx, cy - 8);

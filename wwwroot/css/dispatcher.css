@@ -36,6 +36,52 @@
     --mc-shadow-lg:    0 10px 25px rgba(0,0,0,0.07), 0 4px 10px rgba(0,0,0,0.04);
     --mc-shadow-xl:    0 20px 40px rgba(0,0,0,0.10), 0 8px 16px rgba(0,0,0,0.05);
     --mc-transition:   all .25s cubic-bezier(.4,0,.2,1);
+
+    /* Theme-spezifische Helfer (werden im Dark Mode ueberschrieben) */
+    --mc-sidebar-grad: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    --mc-card-input-bg: #ffffff;
+    --mc-modal-footer-bg: #fafbfc;
+    --mc-wheel-frame-grad:
+        radial-gradient(circle at 50% 30%, rgba(200,169,110,.08), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    --mc-wheel-result-grad: linear-gradient(135deg, rgba(0,81,90,.06), rgba(200,169,110,.08));
+    --mc-confirm-winner-grad: linear-gradient(135deg, rgba(200,169,110,.1), rgba(0,81,90,.04));
+    --mc-app-user-grad: linear-gradient(135deg, rgba(0,81,90,.05), rgba(200,169,110,.05));
+    --mc-toggle-track: #cbd2d9;
+    --mc-canvas-empty-bg: #f3f5f8;
+}
+
+[data-theme="dark"] {
+    /* Neutrale Flaechen — invertiert */
+    --mc-bg:           #0f1419;
+    --mc-bg-card:      #172026;
+    --mc-border:       #283541;
+    --mc-text:         #cbd5e1;
+    --mc-text-dark:    #f1f5f9;
+    --mc-text-muted:   #8a99a8;
+
+    /* Status-Hintergruende dezenter im Dunkeln */
+    --mc-success-bg:   rgba(16,185,129,.15);
+    --mc-warning-bg:   rgba(245,158,11,.15);
+    --mc-danger-bg:    rgba(239,68,68,.15);
+
+    /* Schatten staerker fuer Tiefe auf dunklem Grund */
+    --mc-shadow:       0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --mc-shadow-lg:    0 10px 25px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3);
+    --mc-shadow-xl:    0 24px 50px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.35);
+
+    /* Theme-Helfer fuer Komponenten mit individuellem Hintergrund */
+    --mc-sidebar-grad: linear-gradient(180deg, #131a1f 0%, #0d1318 100%);
+    --mc-card-input-bg: #0f1419;
+    --mc-modal-footer-bg: #0d1318;
+    --mc-wheel-frame-grad:
+        radial-gradient(circle at 50% 30%, rgba(200,169,110,.14), transparent 60%),
+        linear-gradient(180deg, #1a242b 0%, #11181d 100%);
+    --mc-wheel-result-grad: linear-gradient(135deg, rgba(0,81,90,.25), rgba(200,169,110,.18));
+    --mc-confirm-winner-grad: linear-gradient(135deg, rgba(200,169,110,.18), rgba(0,81,90,.12));
+    --mc-app-user-grad: linear-gradient(135deg, rgba(0,81,90,.18), rgba(200,169,110,.10));
+    --mc-toggle-track: #2c3a47;
+    --mc-canvas-empty-bg: #1a232a;
 }
 
 * { box-sizing: border-box; }
@@ -69,7 +115,7 @@ a:hover { color: var(--mc-petrol-dark); }
 }
 
 .app-sidebar {
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    background: var(--mc-sidebar-grad);
     border-right: 1px solid var(--mc-border);
     padding: 1.4rem 1rem;
     display: flex; flex-direction: column;
@@ -99,7 +145,7 @@ a:hover { color: var(--mc-petrol-dark); }
 .app-user {
     margin-top: auto;
     padding: .9rem .8rem;
-    background: linear-gradient(135deg, rgba(0,81,90,.05), rgba(200,169,110,.05));
+    background: var(--mc-app-user-grad);
     border: 1px solid var(--mc-border);
     border-radius: var(--mc-radius-sm);
 }
@@ -229,9 +275,7 @@ a:hover { color: var(--mc-petrol-dark); }
 @media (max-width: 1100px) { .wheel-stage { grid-template-columns: 1fr; } }
 
 .wheel-frame {
-    background:
-        radial-gradient(circle at 50% 30%, rgba(200,169,110,.08), transparent 60%),
-        linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    background: var(--mc-wheel-frame-grad);
     border: 1px solid var(--mc-border);
     border-radius: var(--mc-radius);
     box-shadow: var(--mc-shadow-lg);
@@ -277,7 +321,7 @@ a:hover { color: var(--mc-petrol-dark); }
 .wheel-result {
     margin-top: 1.4rem;
     padding: 1.2rem 1.4rem;
-    background: linear-gradient(135deg, rgba(0,81,90,.06), rgba(200,169,110,.08));
+    background: var(--mc-wheel-result-grad);
     border: 1px solid var(--mc-border);
     border-radius: var(--mc-radius);
     display: flex; align-items: center; gap: 1rem;
@@ -328,7 +372,7 @@ a:hover { color: var(--mc-petrol-dark); }
 
 .toggle-switch {
     width: 48px; height: 26px;
-    background: #cbd2d9;
+    background: var(--mc-toggle-track);
     border-radius: 13px;
     position: relative; cursor: pointer;
     transition: background .25s;
@@ -419,7 +463,7 @@ a:hover { color: var(--mc-petrol-dark); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal-card {
-    background: #fff;
+    background: var(--mc-bg-card);
     border-radius: 22px;
     box-shadow: var(--mc-shadow-xl);
     max-width: 480px; width: 100%;
@@ -452,13 +496,13 @@ a:hover { color: var(--mc-petrol-dark); }
     padding: 1rem 1.6rem 1.4rem;
     display: flex; gap: .7rem; justify-content: flex-end;
     border-top: 1px solid var(--mc-border);
-    background: #fafbfc;
+    background: var(--mc-modal-footer-bg);
 }
 
 .confirm-winner {
     text-align: center;
     padding: 1.2rem;
-    background: linear-gradient(135deg, rgba(200,169,110,.1), rgba(0,81,90,.04));
+    background: var(--mc-confirm-winner-grad);
     border-radius: var(--mc-radius);
     margin-bottom: 1rem;
 }
@@ -488,7 +532,7 @@ a:hover { color: var(--mc-petrol-dark); }
     content: ''; position: absolute; left: -1.65rem; top: 1.05rem;
     width: 14px; height: 14px; border-radius: 50%;
     background: var(--mc-gold);
-    border: 3px solid #fff;
+    border: 3px solid var(--mc-bg);
     box-shadow: 0 0 0 1px var(--mc-border);
 }
 .timeline-item.override::before { background: var(--mc-warning); }
@@ -525,7 +569,7 @@ a:hover { color: var(--mc-petrol-dark); }
     padding: .65rem .9rem;
     border-radius: var(--mc-radius-sm);
     border: 1.5px solid var(--mc-border);
-    background: #fff; color: var(--mc-text-dark);
+    background: var(--mc-card-input-bg); color: var(--mc-text-dark);
     font-family: inherit; font-size: .92rem;
     transition: border-color .2s, box-shadow .2s;
 }
@@ -597,3 +641,134 @@ a:hover { color: var(--mc-petrol-dark); }
 
 .muted { color: var(--mc-text-muted); }
 .spacer-sm { height: .8rem; }
+
+/* ════════════════════════════ Theme Toggle Button ════════════════════════ */
+
+.theme-toggle {
+    margin-top: .8rem;
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: .45rem;
+    padding: .45rem .6rem;
+    border-radius: var(--mc-radius-sm);
+    background: transparent;
+    border: 1px solid var(--mc-border);
+    color: var(--mc-text);
+    font-family: inherit; font-size: .8rem; font-weight: 500;
+    cursor: pointer;
+    transition: var(--mc-transition);
+}
+.theme-toggle:hover {
+    background: rgba(0,81,90,.07);
+    color: var(--mc-petrol);
+    border-color: var(--mc-petrol-light);
+}
+.theme-toggle .icon-sun { display: inline; }
+.theme-toggle .icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle:hover {
+    background: rgba(200,169,110,.12);
+    color: var(--mc-gold);
+    border-color: var(--mc-gold-dark);
+}
+[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+[data-theme="dark"] .theme-toggle .icon-moon { display: inline; }
+
+/* ════════════════════════════ Dark Mode Component Overrides ══════════════ */
+
+/* Navigation: kraeftigere Hover/Active im Dunkeln (rgba(0,81,90,.06) wirkt sonst kaum) */
+[data-theme="dark"] .app-nav-link {
+    color: var(--mc-text);
+}
+[data-theme="dark"] .app-nav-link:hover {
+    background: rgba(200,169,110,.08);
+    color: var(--mc-gold-light);
+}
+[data-theme="dark"] .app-nav-link:hover i { color: var(--mc-gold); }
+[data-theme="dark"] .app-nav-link.active {
+    background: linear-gradient(135deg, rgba(0,81,90,.32), rgba(200,169,110,.18));
+    color: var(--mc-gold-light);
+    box-shadow: inset 3px 0 0 var(--mc-gold);
+}
+[data-theme="dark"] .app-nav-link.active i { color: var(--mc-gold); }
+
+/* Card-Title-Icon: Gold im Dunkeln, fuer mehr Kontrast */
+[data-theme="dark"] .mc-card-title i { color: var(--mc-gold); }
+
+/* Buttons: Ghost-Hover heller */
+[data-theme="dark"] .btn-mc-ghost:hover {
+    background: rgba(255,255,255,.04);
+    border-color: var(--mc-gold-dark);
+    color: var(--mc-gold-light);
+}
+[data-theme="dark"] .btn-mc-danger {
+    background: rgba(239,68,68,.15);
+    color: #fca5a5;
+    border-color: rgba(239,68,68,.3);
+}
+[data-theme="dark"] .btn-mc-danger:hover {
+    background: var(--mc-danger);
+    color: #fff;
+    border-color: var(--mc-danger);
+}
+
+/* Person-row Trennstrich heller im Dunkeln */
+[data-theme="dark"] .person-row + .person-row {
+    border-top-color: rgba(255,255,255,.06);
+}
+
+/* Status-card-Section: dezent dunkler Streifen */
+[data-theme="dark"] .status-card-section {
+    background: rgba(255,255,255,.02);
+}
+[data-theme="dark"] .status-card-section.green {
+    background: linear-gradient(135deg, rgba(16,185,129,.12), rgba(16,185,129,.04));
+}
+[data-theme="dark"] .status-card-section.amber {
+    background: linear-gradient(135deg, rgba(245,158,11,.14), rgba(245,158,11,.05));
+}
+
+/* Toggle-row.active im Dark Mode */
+[data-theme="dark"] .toggle-row.active {
+    background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(200,169,110,.10));
+    border-color: rgba(245,158,11,.35);
+}
+
+/* Login-Card im Dark Mode mit dunklerem Inhalt (Login-Page hat eigenen Dark-Stil,
+   aber Form-Elemente sollen Theme-aware sein) */
+[data-theme="dark"] .login-card {
+    background: rgba(23,32,38,.97);
+    color: var(--mc-text);
+}
+[data-theme="dark"] .login-card .form-label { color: var(--mc-text-dark); }
+[data-theme="dark"] .login-hint { color: var(--mc-text-muted); border-top-color: var(--mc-border); }
+[data-theme="dark"] .login-hint code { background: rgba(200,169,110,.12); color: var(--mc-gold-light); }
+
+/* Tabellen-Zeilen im Dark Mode */
+[data-theme="dark"] .table { color: var(--mc-text); }
+
+/* Badges im Dark Mode */
+[data-theme="dark"] .badge-locked {
+    background: rgba(245,158,11,.18);
+    color: #fcd34d;
+    border-color: rgba(245,158,11,.35);
+}
+[data-theme="dark"] .badge-free {
+    background: rgba(16,185,129,.18);
+    color: #6ee7b7;
+    border-color: rgba(16,185,129,.35);
+}
+
+/* Timeline-Tags im Dark Mode */
+[data-theme="dark"] .timeline-tag {
+    background: rgba(255,255,255,.04);
+    color: var(--mc-text);
+}
+[data-theme="dark"] .timeline-tag.warning {
+    background: rgba(245,158,11,.18);
+    color: #fcd34d;
+    border-color: rgba(245,158,11,.35);
+}
+[data-theme="dark"] .timeline-tag.gold {
+    background: rgba(200,169,110,.18);
+    color: var(--mc-gold-light);
+    border-color: rgba(200,169,110,.4);
+}
