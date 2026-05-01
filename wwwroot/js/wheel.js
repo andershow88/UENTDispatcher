@@ -8,9 +8,19 @@
 (function () {
     'use strict';
 
+    // Slice-Farben: alternierend zwischen Bank-CI (Petrol/Gold) und neuen
+    // Akzenten (Saphir-Blau, Magenta) — bringt Farbe ins Rad ohne die CI
+    // zu sprengen. Reihenfolge ist absichtlich abwechselnd, damit Nachbarn
+    // sich kontrastreich abheben.
     var SLICE_COLORS = [
-        '#00515A', '#C8A96E', '#39747A', '#B5945E',
-        '#003D44', '#D4BB8A', '#1f6168', '#a37f4a'
+        '#00515A', // Petrol
+        '#C2185B', // Magenta
+        '#C8A96E', // Gold
+        '#1565C0', // Saphir-Blau
+        '#39747A', // Petrol-light
+        '#E91E63', // Magenta-vibrant
+        '#B5945E', // Gold-dark
+        '#42A5F5'  // Blau-light
     ];
 
     var state = {
@@ -905,7 +915,14 @@
     };
 
     function confetti() {
-        var colors = ['#C8A96E', '#00515A', '#39747A', '#D4BB8A', '#10b981'];
+        // Konfetti zieht alle Bank-Akzente zusammen: Petrol, Gold, Magenta,
+        // Saphir-Blau plus ein bisschen Erfolgsgruen.
+        var colors = [
+            '#C8A96E', '#00515A', '#39747A', '#D4BB8A',
+            '#10b981',           // success-green Hauch
+            '#C2185B', '#E91E63', // Magenta-Familie
+            '#1565C0', '#42A5F5'  // Blau-Familie
+        ];
         for (var i = 0; i < 60; i++) {
             var p = document.createElement('div');
             p.className = 'confetti-piece';
