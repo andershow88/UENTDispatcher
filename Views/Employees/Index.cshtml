@@ -26,10 +26,10 @@
         <table class="emp-table">
             <thead>
                 <tr>
-                    <th style="width:64px;">Foto</th>
+                    <th style="width:88px;">Foto</th>
                     <th>Name</th>
-                    <th style="width:160px;">Am Rad teilnehmen</th>
-                    <th style="width:160px; text-align:right;">Aktionen</th>
+                    <th style="width:170px;">Am Rad teilnehmen</th>
+                    <th style="width:220px; text-align:right;">Aktionen</th>
                 </tr>
             </thead>
             <tbody id="empBody">
@@ -68,11 +68,11 @@
                                         onclick="onToggleActive(@e.Id, this)"
                                         title="Am Glücksrad teilnehmen / nicht teilnehmen"></button>
                             </td>
-                            <td style="text-align:right;">
+                            <td class="emp-actions-cell">
                                 <button type="button" class="btn-mc btn-mc-ghost emp-action-btn" onclick="openEdit(@e.Id)">
                                     <i class="bi bi-pencil"></i> Bearbeiten
                                 </button>
-                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname @e.Nachname')">
+                                <button type="button" class="btn-mc btn-mc-danger emp-action-btn" onclick="onDelete(@e.Id, '@e.Vorname @e.Nachname')" title="Löschen">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>

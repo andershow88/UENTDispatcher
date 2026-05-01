@@ -23,6 +23,11 @@
         antiforgeryToken: null
     };
 
+    // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
+    // existiert nicht. undefined = noch nicht versucht. So vermeiden wir
+    // doppelte Requests und 404-Loops.
+    var photoCache = {};
+
     function init(initialStatus, antiforgeryToken) {
         state.candidates = (initialStatus || []).map(s => ({
             id: s.Id || s.id,
@@ -110,7 +115,40 @@
     }
 
     // ── Canvas-Drawing ──────────────────────────────────────────────────────
+    // drawWheel = synchroner Render PLUS asynchrones Nachladen fehlender Fotos.
+    // Sobald Fotos eintreffen, wird automatisch erneut gezeichnet.
     function drawWheel() {
+        drawWheelNow();
+        triggerPhotoLoads();
+    }
+
+    // Stoesst im Hintergrund Photo-Loads fuer alle bekannten Kandidaten an,
+    // die noch keinen Cache-Eintrag haben. Idempotent — laeuft pro ID nur
+    // einmal pro Session (Erfolg ODER 404 wird gemerkt).
+    function triggerPhotoLoads() {
+        var ids = state.candidates.map(function (s) { return s.id; });
+        var pending = 0;
+        var maybeRedraw = function () { if (pending === 0) drawWheelNow(); };
+        ids.forEach(function (id) {
+            if (photoCache[id] !== undefined) return;
+            photoCache[id] = null; // Slot reservieren
+            pending++;
+            var img = new Image();
+            img.onload = function () {
+                photoCache[id] = img;
+                pending--;
+                maybeRedraw();
+            };
+            img.onerror = function () {
+                // photoCache[id] bleibt null — kein Foto fuer diese Person
+                pending--;
+                maybeRedraw();
+            };
+            img.src = '/Employees/Photo/' + id;
+        });
+    }
+
+    function drawWheelNow() {
         var canvas = document.getElementById('wheelCanvas');
         if (!canvas) return;
         var ctx = canvas.getContext('2d');
@@ -128,7 +166,6 @@
 
         var slices = state.eligible;
         if (slices.length === 0) {
-            // Leerer Zustand — Farben aus CSS-Variablen, damit Theme-aware
             var rs = getComputedStyle(document.documentElement);
             var emptyBg = (rs.getPropertyValue('--mc-canvas-empty-bg') || '#f3f5f8').trim();
             var emptyBorder = (rs.getPropertyValue('--mc-border') || '#e4e7eb').trim();
@@ -149,45 +186,132 @@
         }
 
         var sliceAngle = (Math.PI * 2) / slices.length;
+        var sizeFactor = Math.max(1, size / 560);
+
+        // Foto-/Initialen-Disc-Position und -Groesse
+        var photoR = radius * 0.62;
+        var chordHalf = photoR * Math.sin(sliceAngle / 2);
+        // Disc fuellt 80% der Slice-Breite an dieser Position, plus Cap auf 30% des Radius
+        var photoSize = Math.max(24, Math.min(radius * 0.32, chordHalf * 1.8));
 
         for (var i = 0; i < slices.length; i++) {
             var startAngle = -Math.PI / 2 + i * sliceAngle;
             var endAngle = startAngle + sliceAngle;
             var color = SLICE_COLORS[i % SLICE_COLORS.length];
 
+            // Slice-Fuellung mit radialem Gradient
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.arc(cx, cy, radius, startAngle, endAngle);
             ctx.closePath();
-
-            // Subtle radial gradient für jede Slice
             var grad = ctx.createRadialGradient(cx, cy, radius * 0.15, cx, cy, radius);
             grad.addColorStop(0, lighten(color, 0.18));
             grad.addColorStop(1, color);
             ctx.fillStyle = grad;
             ctx.fill();
-
             ctx.strokeStyle = 'rgba(255,255,255,.45)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // Text (radial vom Zentrum nach außen)
+            // Foto bzw. Initialen-Kreis im Slice
+            var midAngle = startAngle + sliceAngle / 2;
+            var px = cx + Math.cos(midAngle) * photoR;
+            var py = cy + Math.sin(midAngle) * photoR;
+            var photo = photoCache[slices[i].id];
+            var radius2 = photoSize / 2;
+
+            // Schatten unter der Disc, fuer leichten 3D-Effekt
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,.25)';
+            ctx.shadowBlur = Math.max(4, photoSize * 0.08);
+            ctx.shadowOffsetY = Math.max(1, photoSize * 0.04);
+            ctx.beginPath();
+            ctx.arc(px, py, radius2, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            // In den Kreis clippen, dann Foto/Hintergrund zeichnen
+            ctx.beginPath();
+            ctx.arc(px, py, radius2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            if (photo && photo.naturalWidth > 0) {
+                // object-fit: cover — Source-Crop quadratisch
+                var iw = photo.naturalWidth;
+                var ih = photo.naturalHeight;
+                var sx, sy, sSize;
+                if (iw >= ih) {
+                    sSize = ih;
+                    sx = (iw - ih) / 2;
+                    sy = 0;
+                } else {
+                    sSize = iw;
+                    sx = 0;
+                    sy = (ih - iw) / 2;
+                }
+                ctx.drawImage(photo, sx, sy, sSize, sSize,
+                              px - radius2, py - radius2, photoSize, photoSize);
+            } else {
+                // Fallback: Initialen-Disc mit Slice-Color
+                var initGrad = ctx.createLinearGradient(px - radius2, py - radius2, px + radius2, py + radius2);
+                initGrad.addColorStop(0, lighten(color, 0.25));
+                initGrad.addColorStop(1, color);
+                ctx.fillStyle = initGrad;
+                ctx.fillRect(px - radius2, py - radius2, photoSize, photoSize);
+
+                ctx.fillStyle = isLight(color) ? '#1a202c' : '#ffffff';
+                var name = slices[i].anzeigename || '';
+                var initials = name.split(' ').filter(Boolean)
+                    .map(function (s) { return s.charAt(0).toUpperCase(); })
+                    .slice(0, 2).join('');
+                ctx.font = 'bold ' + Math.round(photoSize * 0.36) + 'px Inter, system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(initials || '?', px, py);
+            }
+            ctx.restore();
+
+            // Weisser Ring um die Disc (Polaroid-Look)
+            ctx.beginPath();
+            ctx.arc(px, py, radius2, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(2, photoSize * 0.06);
+            ctx.stroke();
+
+            // Locked-Indikator: kleines Schloss oben rechts auf der Disc
+            if (slices[i].gesperrt) {
+                var badgeR = photoSize * 0.20;
+                var bx = px + Math.cos(-Math.PI / 4) * radius2;
+                var by = py + Math.sin(-Math.PI / 4) * radius2;
+                ctx.beginPath();
+                ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = Math.max(1.5, photoSize * 0.04);
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold ' + Math.round(badgeR * 1.3) + 'px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🔒', bx, by + badgeR * 0.05);
+            }
+
+            // Vorname als kleines Label am Aussenrand der Slice
             ctx.save();
             ctx.translate(cx, cy);
-            ctx.rotate(startAngle + sliceAngle / 2);
+            ctx.rotate(midAngle);
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = isLight(color) ? '#1a202c' : '#ffffff';
-            var name = slices[i].anzeigename;
-            // Schriftgroesse skaliert mit Canvas-Groesse (Faktor relativ zu 560px Basis),
-            // damit Text auch auf dem 1100px-Vollbild-Rad gut lesbar ist.
-            var sizeFactor = Math.max(1, size / 560);
-            var baseFontSize = slices.length > 18 ? 10 : (slices.length > 14 ? 11.5 : (slices.length > 10 ? 13 : 15));
-            var fontSize = Math.round(baseFontSize * sizeFactor);
-            ctx.font = '600 ' + fontSize + 'px Inter, system-ui, sans-serif';
-            // Locked-Marker
-            var prefix = slices[i].gesperrt ? '🔒 ' : '';
-            ctx.fillText(prefix + truncate(name, 22), radius - Math.round(14 * sizeFactor), 4);
+            var firstName = (slices[i].anzeigename || '').split(' ')[0] || '';
+            var baseLabelSize = slices.length > 18 ? 10 : (slices.length > 14 ? 11 : (slices.length > 10 ? 12 : 13));
+            var labelSize = Math.round(baseLabelSize * sizeFactor);
+            ctx.font = '600 ' + labelSize + 'px Inter, system-ui, sans-serif';
+            ctx.fillText(truncate(firstName, 14), radius - Math.round(10 * sizeFactor), 0);
             ctx.restore();
         }
 

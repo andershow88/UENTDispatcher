@@ -785,23 +785,28 @@ a:hover { color: var(--mc-petrol-dark); }
 /* Avatar mit Hover-Overlay (Klick zum Foto-Upload) */
 .emp-avatar {
     position: relative;
-    width: 48px; height: 48px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     overflow: hidden;
     cursor: pointer;
     flex-shrink: 0;
     background: linear-gradient(135deg, var(--mc-petrol), var(--mc-petrol-light));
-    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    box-shadow: 0 3px 10px rgba(0,0,0,.10);
     transition: var(--mc-transition);
     user-select: none;
+    border: 3px solid #fff;
+}
+[data-theme="dark"] .emp-avatar {
+    border-color: var(--mc-bg-card);
 }
 .emp-avatar:hover {
     transform: scale(1.06);
-    box-shadow: 0 4px 12px rgba(0,81,90,.25);
+    box-shadow: 0 6px 18px rgba(0,81,90,.25);
 }
 .emp-avatar img {
     width: 100%; height: 100%;
-    object-fit: cover;
+    object-fit: cover;             /* Foto fuellt den Kreis intelligent */
+    object-position: center;
     display: block;
 }
 .emp-avatar-initials {
@@ -809,7 +814,7 @@ a:hover { color: var(--mc-petrol-dark); }
     display: flex; align-items: center; justify-content: center;
     color: #fff;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.4rem;
     letter-spacing: .04em;
 }
 .emp-avatar-overlay {
@@ -817,12 +822,18 @@ a:hover { color: var(--mc-petrol-dark); }
     background: rgba(0,0,0,.55);
     color: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     opacity: 0;
     transition: opacity .2s;
 }
 .emp-avatar:hover .emp-avatar-overlay {
     opacity: 1;
+}
+
+/* Aktions-Zelle in der Mitarbeiter-Tabelle: Buttons immer in einer Zeile */
+.emp-actions-cell {
+    text-align: right;
+    white-space: nowrap;
 }
 
 /* ════════════════════════════ Wheel Vollbild-Modus ═══════════════════════
