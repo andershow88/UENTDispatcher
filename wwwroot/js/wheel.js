@@ -62,6 +62,7 @@
         drawWheel();
         updateStatusPanel();
         bindUI();
+        setupSperrlisteAutoScroll();
         // Bei Theme-Wechsel: Canvas neu zeichnen (Empty-State-Farben)
         window.addEventListener('uent:theme-changed', function () {
             if (!state.spinning) drawWheel();
@@ -215,6 +216,38 @@
         recomputeEligible();
         drawWheel();
         updateStatusPanel();
+        // Nach jeder Toggle-Aktion das Dropdown automatisch zumachen.
+        // Das setzt details.open = false → toggle-Event feuert → Auto-Scroll
+        // zurueck zur Original-Position (siehe setupSperrlisteAutoScroll).
+        if (row && row.tagName === 'DETAILS' && row.open) row.open = false;
+    }
+
+    // Sperrliste-Dropdown: beim Aufklappen autoscroll zur Box, beim
+    // Zuklappen zurueck. Plus: Klick ausserhalb schliesst die Box.
+    function setupSperrlisteAutoScroll() {
+        var details = document.getElementById('toggleRow');
+        if (!details || details.tagName !== 'DETAILS') return;
+
+        var savedScrollY = 0;
+
+        details.addEventListener('toggle', function () {
+            if (details.open) {
+                savedScrollY = window.scrollY;
+                // Naechster Frame: details-Body ist gerendert, Scroll zur Box
+                requestAnimationFrame(function () {
+                    details.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                });
+            } else {
+                window.scrollTo({ top: savedScrollY, behavior: 'smooth' });
+            }
+        });
+
+        // Klick ausserhalb (nicht in details und nicht auf summary) → zumachen
+        document.addEventListener('click', function (e) {
+            if (!details.open) return;
+            if (details.contains(e.target)) return;
+            details.open = false;
+        });
     }
 
     // ── Canvas-Drawing ──────────────────────────────────────────────────────
