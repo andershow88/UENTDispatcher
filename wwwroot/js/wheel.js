@@ -1077,9 +1077,9 @@
         img.alt = '';
         img.draggable = false;
         img.className = 'wheel-rain-piece wheel-rain-photo';
-        var size = 56 + Math.floor(Math.random() * 60);   // 56..116 px (etwas groesser, weil Foto)
+        var size = 32 + Math.floor(Math.random() * 36);   // 32..68 px (kleiner, dezenter)
         var duration = 9 + Math.random() * 7;              // 9..16 s
-        var opacity = 0.55 + Math.random() * 0.35;         // 0.55..0.90 (praesenter als Logo)
+        var opacity = 0.30 + Math.random() * 0.30;         // 0.30..0.60 (transparenter)
         var rot = 360 + Math.floor(Math.random() * 1080);  // 360..1440 deg
         var direction = Math.random() < 0.5 ? -1 : 1;
         img.style.left = (Math.random() * 100) + 'vw';
@@ -1108,17 +1108,18 @@
         if (state.rainTimers.length > 0) return; // bereits aktiv → idempotent
         // Logo-Regen kontinuierlich
         state.rainTimers.push(setInterval(spawnRainLogo, 360));
-        // Foto-Regen — nur, wenn ueberhaupt Fotos im Cache sind
+        // Foto-Regen — nur, wenn ueberhaupt Fotos im Cache sind. Schneller
+        // Spawn (320 ms) → viele kleine Avatars rieseln neben den Logos.
         var photos = getCachedPhotoList();
         if (photos.length > 0) {
             state.rainTimers.push(setInterval(function () {
                 spawnRainPhoto(getCachedPhotoList());
-            }, 700));
+            }, 320));
         }
         // Sofort-Burst, damit der Bildschirm schon im ersten Moment voll ist
         for (var i = 0; i < 14; i++) spawnRainLogo({ preStarted: true, force: true });
         if (photos.length > 0) {
-            for (var j = 0; j < 7; j++) spawnRainPhoto(photos, { preStarted: true, force: true });
+            for (var j = 0; j < 18; j++) spawnRainPhoto(photos, { preStarted: true, force: true });
         }
     }
 

@@ -970,10 +970,10 @@ a:hover { color: var(--mc-petrol-dark); }
     border-radius: 50%;
     object-fit: cover;
     object-position: center;
-    border: 3px solid rgba(255,255,255,.92);
+    border: 2px solid rgba(255,255,255,.85);
     box-shadow:
-        0 6px 16px rgba(0,0,0,.55),
-        0 0 0 4px rgba(200, 169, 110, .28);
+        0 4px 10px rgba(0,0,0,.45),
+        0 0 0 2px rgba(200, 169, 110, .22);
 }
 @keyframes logoRainFall {
     0%   { transform: translateY(0) rotate(0deg); }
