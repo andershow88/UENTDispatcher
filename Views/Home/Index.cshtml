@@ -35,16 +35,19 @@
 
         <div id="wheelError" class="wheel-error" style="display:none;"></div>
 
-        <div id="toggleRow" class="toggle-row">
-            <div>
-                <div class="toggle-text-main"><i class="bi bi-shield-exclamation"></i> Sperrliste ignorieren</div>
+        <details id="toggleRow" class="toggle-row toggle-row-collapsible">
+            <summary class="toggle-row-summary">
+                <span class="toggle-text-main"><i class="bi bi-shield-exclamation"></i> Sperrliste ignorieren</span>
+                <i class="bi bi-chevron-down toggle-row-chev"></i>
+            </summary>
+            <div class="toggle-row-body">
                 <div class="toggle-text-hint">
                     Wenn aktiviert → Alle Kollegen werden bei der Auslosung berücksichtigt, auch die mit laufender Sperrfrist.
                     Wird eine gesperrte Person bestätigt, entsteht ein <strong>neuer Eintrag</strong> im Verlauf und die Sperre wird auf <strong>frische @sperreTage Tage</strong> gesetzt.
                 </div>
+                <button type="button" id="toggleBlacklist" class="toggle-switch" aria-label="Sperrliste ignorieren"></button>
             </div>
-            <button type="button" id="toggleBlacklist" class="toggle-switch" aria-label="Sperrliste ignorieren"></button>
-        </div>
+        </details>
     </div>
 
     <!-- ────────────────── Status-Panel (rechts) ────────────────── -->

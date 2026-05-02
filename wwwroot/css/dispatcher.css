@@ -415,6 +415,43 @@ a:hover { color: var(--mc-petrol-dark); }
 .toggle-text-main { font-weight: 600; color: var(--mc-text-dark); font-size: .9rem; }
 .toggle-text-hint { font-size: .76rem; color: var(--mc-text-muted); margin-top: .15rem; }
 
+/* Klappbare Variante des Toggle-Rows: Header oben (Titel + Chevron),
+   beim Aufklappen Hint-Text + Switch im Body. Default: zugeklappt. */
+.toggle-row-collapsible {
+    display: block;             /* override flex auf .toggle-row */
+    padding: 0;
+    overflow: hidden;
+}
+.toggle-row-collapsible summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    padding: .75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+}
+.toggle-row-collapsible summary::-webkit-details-marker { display: none; }
+.toggle-row-collapsible summary::marker { display: none; }
+.toggle-row-collapsible .toggle-text-main { flex: 1; }
+.toggle-row-chev {
+    color: var(--mc-text-muted);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.toggle-row-collapsible[open] .toggle-row-chev { transform: rotate(180deg); }
+.toggle-row-body {
+    padding: .15rem 1rem .9rem;
+    border-top: 1px dashed rgba(0,0,0,.06);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: collapsibleFadeIn .25s ease-out;
+}
+.toggle-row-body .toggle-text-hint { flex: 1; margin-top: 0; }
+[data-theme="dark"] .toggle-row-body { border-top-color: rgba(255,255,255,.05); }
+
 .toggle-switch {
     width: 48px; height: 26px;
     background: var(--mc-toggle-track);
