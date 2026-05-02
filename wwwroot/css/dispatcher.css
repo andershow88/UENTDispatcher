@@ -302,7 +302,7 @@ a:hover { color: var(--mc-petrol-dark); }
 /* ═════════════════════════════ Wheel ═══════════════════════════════════════ */
 
 .wheel-stage {
-    display: grid; grid-template-columns: 1fr 360px; gap: 1.8rem; align-items: start;
+    display: grid; grid-template-columns: 1fr 280px; gap: 1.8rem; align-items: start;
 }
 @media (max-width: 1100px) { .wheel-stage { grid-template-columns: 1fr; } }
 
