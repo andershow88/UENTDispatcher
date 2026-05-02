@@ -1749,16 +1749,20 @@ body.wheel-fs .wheel-pointer {
 }
 .wait-image-wrap {
     margin: 0 auto 1.4rem;
-    max-width: min(70vh, 360px);
+    max-width: min(72vh, 520px);
     filter:
-        drop-shadow(0 12px 28px rgba(0,0,0,.55))
-        drop-shadow(0 0 22px rgba(255,180,80,.35));
-    animation: waitShake 1.6s ease-in-out infinite;
+        drop-shadow(0 14px 32px rgba(0,0,0,.55))
+        drop-shadow(0 0 26px rgba(255,180,80,.35));
+    animation: waitShake 1.8s ease-in-out infinite;
 }
 .wait-image {
     width: 100%;
     height: auto;
     display: block;
+    border-radius: 16px;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
 }
 @keyframes waitShake {
     0%, 100% { transform: rotate(-2deg); }

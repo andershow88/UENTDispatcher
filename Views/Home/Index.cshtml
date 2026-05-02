@@ -101,78 +101,7 @@
 <div class="wait-overlay" id="waitOverlay">
     <div class="wait-content">
         <div class="wait-image-wrap">
-            <!-- SVG-Charikatur: saurer Mann mit ausgestrecktem Zeigefinger.
-                 Bewusst plakativ-komisch, damit die Sperre als humorvolles
-                 "noch nicht!" wahrgenommen wird. -->
-            <svg viewBox="0 0 320 360" xmlns="http://www.w3.org/2000/svg" class="wait-image" aria-hidden="true">
-                <!-- Hintergrund-Glow -->
-                <defs>
-                    <radialGradient id="waitGlow" cx="50%" cy="40%" r="60%">
-                        <stop offset="0%" stop-color="#ffd66b" stop-opacity=".55" />
-                        <stop offset="100%" stop-color="#ffd66b" stop-opacity="0" />
-                    </radialGradient>
-                    <linearGradient id="waitFinger" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#fbe1c0" />
-                        <stop offset="100%" stop-color="#e6b48a" />
-                    </linearGradient>
-                </defs>
-                <ellipse cx="160" cy="160" rx="150" ry="170" fill="url(#waitGlow)" />
-
-                <!-- Hals -->
-                <rect x="138" y="180" width="44" height="40" fill="#e6b48a" rx="6" />
-                <!-- Pulli/Hemd -->
-                <path d="M80 320 Q80 240 138 220 L182 220 Q240 240 240 320 Z"
-                      fill="#3a4d63" stroke="#1f2937" stroke-width="2" />
-                <path d="M138 220 L160 252 L182 220 L182 240 L138 240 Z" fill="#1f2937" />
-
-                <!-- Kopf -->
-                <ellipse cx="160" cy="140" rx="78" ry="86" fill="#fbe1c0" stroke="#1f2937" stroke-width="2" />
-
-                <!-- Haare -->
-                <path d="M86 110 Q100 56 160 50 Q220 56 234 110 Q230 80 200 70 Q170 60 160 70 Q150 60 120 70 Q90 80 86 110 Z"
-                      fill="#3a2a1a" stroke="#1f2937" stroke-width="2" />
-
-                <!-- Augenbrauen — wuetend zusammengezogen -->
-                <path d="M104 124 L142 116 L142 124 L104 132 Z" fill="#3a2a1a" />
-                <path d="M178 116 L216 124 L216 132 L178 124 Z" fill="#3a2a1a" />
-
-                <!-- Augen -->
-                <ellipse cx="124" cy="142" rx="9" ry="7" fill="#fff" stroke="#1f2937" stroke-width="1.5" />
-                <ellipse cx="196" cy="142" rx="9" ry="7" fill="#fff" stroke="#1f2937" stroke-width="1.5" />
-                <circle cx="124" cy="143" r="4" fill="#1f2937" />
-                <circle cx="196" cy="143" r="4" fill="#1f2937" />
-
-                <!-- Roter Kopf-Fleck (Wut) -->
-                <ellipse cx="120" cy="170" rx="16" ry="9" fill="#ef4444" opacity=".35" />
-                <ellipse cx="200" cy="170" rx="16" ry="9" fill="#ef4444" opacity=".35" />
-
-                <!-- Nase -->
-                <path d="M158 148 Q156 168 152 174 Q160 178 168 174 Q164 168 162 148 Z"
-                      fill="#e6b48a" stroke="#1f2937" stroke-width="1.5" />
-
-                <!-- Mund — zaehnefletschend -->
-                <path d="M124 196 Q160 216 196 196 L196 200 Q160 222 124 200 Z"
-                      fill="#1f2937" />
-                <path d="M132 198 L140 208 L148 198 L156 208 L164 198 L172 208 L180 198 L188 208 L196 198"
-                      fill="#fff" stroke="#1f2937" stroke-width="1" />
-
-                <!-- Arm + ausgestreckter Zeigefinger -->
-                <path d="M226 230 Q272 220 295 250 Q302 268 282 282 Q260 290 240 282 Q235 270 226 260 Z"
-                      fill="#3a4d63" stroke="#1f2937" stroke-width="2" />
-                <ellipse cx="278" cy="270" rx="22" ry="20" fill="url(#waitFinger)" stroke="#1f2937" stroke-width="2" />
-                <!-- Zeigefinger nach vorne -->
-                <rect x="290" y="262" width="28" height="18" rx="9" fill="url(#waitFinger)" stroke="#1f2937" stroke-width="2" />
-                <!-- Fingernagel-Andeutung -->
-                <ellipse cx="316" cy="271" rx="3.5" ry="6" fill="#f5d7b2" />
-
-                <!-- Schweisstropfen (Hektik) -->
-                <ellipse cx="80" cy="100" rx="6" ry="9" fill="#60a5fa" opacity=".85" />
-                <ellipse cx="240" cy="92" rx="5" ry="7" fill="#60a5fa" opacity=".75" />
-
-                <!-- Wut-Linien -->
-                <path d="M70 60 L90 80 M58 80 L78 92 M70 110 L90 110" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round" />
-                <path d="M250 60 L230 80 M262 80 L242 92 M250 110 L230 110" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round" />
-            </svg>
+            <img src="~/images/warten.jpg" alt="Du sollst warten" class="wait-image" asp-append-version="true" />
         </div>
         <div class="wait-headline">DU SOLLST WARTEN!</div>
         <div class="wait-subline">Drehen ist heute nicht freigeschaltet.</div>
