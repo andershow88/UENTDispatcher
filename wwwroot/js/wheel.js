@@ -41,7 +41,8 @@
         flyPhaseBTimer: null,
         flyPhaseCTimer: null,
         confettiRainTimer: null,
-        confettiBurstTimer: null
+        confettiBurstTimer: null,
+        rainTimers: []          // Logo-/Foto-Regen waehrend Vollbild-Spin
     };
 
     // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
@@ -104,6 +105,7 @@
         var modalPhotoContainer = document.getElementById('winnerPhotoContainer');
         if (modalPhotoContainer) modalPhotoContainer.classList.remove('visible');
         stopContinuousConfetti();
+        stopFullscreenRain();
     }
 
     // ── Cancel-Spin: harte Reset-Funktion fuer alle Fehler-/Abbruch-Situationen
@@ -174,11 +176,13 @@
         if (animate && !wasFs) {
             startGrowingAnimation();
         }
+        startFullscreenRain();
     }
     function exitFullscreen() {
         document.body.classList.remove('wheel-fs');
         var wrap = document.querySelector('.wheel-canvas-wrap');
         if (wrap) wrap.classList.remove('growing');
+        stopFullscreenRain();
         drawWheel();
         if (document.fullscreenElement && document.exitFullscreen) {
             document.exitFullscreen().catch(function () {});
@@ -1030,6 +1034,102 @@
 
     // Backwards-kompatible Einzel-Funktion: ein One-Shot-Burst.
     function confetti() { confettiBurst(); }
+
+    // ── Vollbild-Regen: Logos + Mitarbeiter-Fotos ───────────────────────────
+    // Waehrend des Vollbild-Spins fallen rotierend Merkur-Logos vom oberen
+    // Bildschirmrand (analog Login). Zusaetzlich: alle hochgeladenen Fotos
+    // der Teammitglieder regnen rund (avatar-style) mit. Stoppt beim Verlassen
+    // des Vollbilds bzw. Cancel.
+    var RAIN_DOM_CAP = 70; // Maximal gleichzeitig sichtbare Regen-Elemente
+
+    function spawnRainLogo(opts) {
+        opts = opts || {};
+        if (!opts.force && document.querySelectorAll('.wheel-rain-piece').length > RAIN_DOM_CAP) return;
+        var img = document.createElement('img');
+        img.src = '/images/merkur-logo.svg';
+        img.alt = '';
+        img.draggable = false;
+        img.className = 'wheel-rain-piece wheel-rain-logo';
+        var size = 40 + Math.floor(Math.random() * 70);   // 40..110 px
+        var duration = 8 + Math.random() * 8;              // 8..16 s
+        var opacity = 0.22 + Math.random() * 0.34;         // 0.22..0.56
+        var rot = 360 + Math.floor(Math.random() * 1440);  // 360..1800 deg
+        var direction = Math.random() < 0.5 ? -1 : 1;
+        img.style.left = (Math.random() * 100) + 'vw';
+        img.style.width = size + 'px';
+        img.style.opacity = opacity;
+        img.style.animationDuration = duration + 's';
+        img.style.setProperty('--rain-rot', (rot * direction) + 'deg');
+        if (opts.preStarted) {
+            img.style.animationDelay = '-' + (Math.random() * duration * 0.85) + 's';
+        }
+        document.body.appendChild(img);
+        setTimeout(function () { if (img.parentNode) img.remove(); }, duration * 1000 + 300);
+    }
+
+    function spawnRainPhoto(photos, opts) {
+        opts = opts || {};
+        if (!photos || photos.length === 0) return;
+        if (!opts.force && document.querySelectorAll('.wheel-rain-piece').length > RAIN_DOM_CAP) return;
+        var src = photos[Math.floor(Math.random() * photos.length)].src;
+        var img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        img.draggable = false;
+        img.className = 'wheel-rain-piece wheel-rain-photo';
+        var size = 56 + Math.floor(Math.random() * 60);   // 56..116 px (etwas groesser, weil Foto)
+        var duration = 9 + Math.random() * 7;              // 9..16 s
+        var opacity = 0.55 + Math.random() * 0.35;         // 0.55..0.90 (praesenter als Logo)
+        var rot = 360 + Math.floor(Math.random() * 1080);  // 360..1440 deg
+        var direction = Math.random() < 0.5 ? -1 : 1;
+        img.style.left = (Math.random() * 100) + 'vw';
+        img.style.width = size + 'px';
+        img.style.height = size + 'px';
+        img.style.opacity = opacity;
+        img.style.animationDuration = duration + 's';
+        img.style.setProperty('--rain-rot', (rot * direction) + 'deg');
+        if (opts.preStarted) {
+            img.style.animationDelay = '-' + (Math.random() * duration * 0.85) + 's';
+        }
+        document.body.appendChild(img);
+        setTimeout(function () { if (img.parentNode) img.remove(); }, duration * 1000 + 300);
+    }
+
+    function getCachedPhotoList() {
+        var photos = [];
+        for (var id in photoCache) {
+            var p = photoCache[id];
+            if (p && p.naturalWidth > 0) photos.push(p);
+        }
+        return photos;
+    }
+
+    function startFullscreenRain() {
+        if (state.rainTimers.length > 0) return; // bereits aktiv → idempotent
+        // Logo-Regen kontinuierlich
+        state.rainTimers.push(setInterval(spawnRainLogo, 360));
+        // Foto-Regen — nur, wenn ueberhaupt Fotos im Cache sind
+        var photos = getCachedPhotoList();
+        if (photos.length > 0) {
+            state.rainTimers.push(setInterval(function () {
+                spawnRainPhoto(getCachedPhotoList());
+            }, 700));
+        }
+        // Sofort-Burst, damit der Bildschirm schon im ersten Moment voll ist
+        for (var i = 0; i < 14; i++) spawnRainLogo({ preStarted: true, force: true });
+        if (photos.length > 0) {
+            for (var j = 0; j < 7; j++) spawnRainPhoto(photos, { preStarted: true, force: true });
+        }
+    }
+
+    function stopFullscreenRain() {
+        state.rainTimers.forEach(function (id) { clearInterval(id); });
+        state.rainTimers = [];
+        // Bestehende Pieces duerfen ihren Fall zu Ende fallen — kein hartes
+        // Entfernen, sonst sieht der Wechsel ruckartig aus. Setzt sich
+        // automatisch sauber, weil jedes Piece einen eigenen setTimeout-
+        // Cleanup hat.
+    }
 
     // ── HTTP-Helper ─────────────────────────────────────────────────────────
     async function postJson(url, body) {
