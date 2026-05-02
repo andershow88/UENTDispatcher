@@ -197,6 +197,26 @@
         wrap.classList.add('growing');
     }
 
+    // Browser-Hit-Test refreshen ohne Mausbewegung. Hintergrund: nach einem
+    // grossen Layout-Reflow (z.B. body.wheel-fs entfernen → fixed-position-
+    // Buttons fallen in Normal-Flow zurueck) zeigt der Maus-Cursor auf eine
+    // andere Stelle des neuen Layouts, aber Browser aktualisieren ihren
+    // hovered-element / hit-test-State teils erst beim naechsten echten
+    // mousemove. Folge: der erste Klick auf den neu positionierten Button
+    // landet im "alten" Layout und wird verschluckt — der Button wirkt
+    // inaktiv bis die Maus bewegt wird. body kurz auf pointer-events: none
+    // setzen + sofort zuruecknehmen erzwingt den Hit-Test-Update.
+    function refreshHitTest() {
+        requestAnimationFrame(function () {
+            var prev = document.body.style.pointerEvents;
+            document.body.style.pointerEvents = 'none';
+            void document.body.offsetWidth;
+            requestAnimationFrame(function () {
+                document.body.style.pointerEvents = prev;
+            });
+        });
+    }
+
     function recomputeEligible() {
         state.eligible = state.blacklistIgnoriert
             ? state.candidates.slice()
@@ -951,15 +971,17 @@
 
             if (myToken !== state.operationToken) return;
 
+            // State sofort zuruecksetzen — vor jedem Layout-Change. Falls eine
+            // spaetere Operation (z.B. fullscreenchange) noch laeuft, blockiert
+            // kein hangengebliebener Flag den naechsten onSpin-Klick.
+            state.spinning = false;
+            state.winner = null;
+            state.operationToken++;
+
             // Direkt zurueck in die Hauptansicht — KEIN Erfolgs-Modal mehr.
             document.getElementById('winnerModal').classList.remove('open');
             cleanupFly();
-            // Operation-Token bumpen, damit eventuelle weitere alte Callbacks
-            // (z.B. nachgelagerte fullscreenchange) sich selbst ignorieren.
-            state.operationToken++;
             exitFullscreen();
-            state.spinning = false;
-            state.winner = null;
             var btnSpin = document.getElementById('btnSpin');
             if (btnSpin) { btnSpin.disabled = false; btnSpin.style.display = ''; btnSpin.innerHTML = '<i class="bi bi-arrow-repeat"></i> Drehen'; }
             confirmBtn.disabled = false;
@@ -967,6 +989,14 @@
             respinBtn.disabled = false;
             drawWheel();
             updateStatusPanel();
+            // Browser-Hit-Test refreshen: beim Uebergang Vollbild → Normal-
+            // ansicht aendert sich die Position des Drehen-Buttons drastisch
+            // (fixed-position-Pille mittig unten → normaler Block-Flow unter
+            // dem Rad). Manche Browser aktualisieren den Maus-Hit-Test erst
+            // beim naechsten echten mousemove-Event — der erste Klick auf den
+            // neu positionierten Button wird so verschluckt, bis der User die
+            // Maus aktiv bewegt. Refresh-Hack zwingt das Update sofort.
+            refreshHitTest();
         } catch (e) {
             if (myToken !== state.operationToken) return;
             err.textContent = 'Verbindungsfehler: ' + e.message;
