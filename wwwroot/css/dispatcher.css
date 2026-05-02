@@ -37,107 +37,80 @@
     --mc-shadow-xl:    0 20px 40px rgba(0,0,0,0.10), 0 8px 16px rgba(0,0,0,0.05);
     --mc-transition:   all .25s cubic-bezier(.4,0,.2,1);
 
-    /* Akzentfarben — bringen Magenta + Saphir-Blau ins Bank-CI rein.
-       Im Light-Mode dezent als Tinten, im Dark-Mode kraeftiger. */
-    --mc-accent-blue:        #1565C0;
-    --mc-accent-blue-soft:   rgba(21, 101, 192, .08);
-    --mc-accent-blue-tint:   rgba(21, 101, 192, .04);
-    --mc-accent-magenta:     #C2185B;
-    --mc-accent-magenta-soft: rgba(194, 24, 91, .08);
-    --mc-accent-magenta-tint: rgba(194, 24, 91, .04);
+    /* TeamsMB-Style: keine bunten Akzente mehr — Petrol + Gold sind die
+       einzigen Markenfarben. Body bleibt plain. */
+    --mc-bg-grad:        var(--mc-bg);
 
-    /* Body-Hintergrund mit zarten Farbpunkten — verhindert das "starre Weiss" */
-    --mc-bg-grad:
-        radial-gradient(circle at 0% 0%, rgba(21, 101, 192, .05), transparent 35%),
-        radial-gradient(circle at 100% 100%, rgba(194, 24, 91, .06), transparent 40%),
-        linear-gradient(180deg, #f4f4fa 0%, #f3f5f8 100%);
-
-    /* Theme-spezifische Helfer (werden im Dark Mode ueberschrieben) */
     --mc-sidebar-grad:
-        linear-gradient(180deg, #ffffff 0%, #f8f6fb 60%, #f5f4f9 100%);
-    --mc-card-input-bg: #ffffff;
+        linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    --mc-card-input-bg:  #ffffff;
     --mc-modal-footer-bg: #fafbfc;
     --mc-wheel-frame-grad:
-        radial-gradient(circle at 30% 20%, rgba(21, 101, 192, .06), transparent 50%),
-        radial-gradient(circle at 70% 80%, rgba(194, 24, 91, .06), transparent 55%),
-        radial-gradient(circle at 50% 30%, rgba(200,169,110,.06), transparent 60%),
+        radial-gradient(circle at 50% 30%, rgba(200,169,110,.08), transparent 60%),
         linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-    --mc-wheel-result-grad: linear-gradient(135deg, rgba(21, 101, 192, .06), rgba(194, 24, 91, .06));
-    --mc-confirm-winner-grad: linear-gradient(135deg, rgba(200,169,110,.1), rgba(194, 24, 91, .06));
+    --mc-wheel-result-grad:    linear-gradient(135deg, rgba(0,81,90,.06), rgba(200,169,110,.08));
+    --mc-confirm-winner-grad:  linear-gradient(135deg, rgba(200,169,110,.10), rgba(0,81,90,.04));
     --mc-app-user-grad:
-        linear-gradient(135deg,
-            rgba(21, 101, 192, .06) 0%,
-            rgba(0,81,90,.05) 50%,
-            rgba(194, 24, 91, .06) 100%);
-    --mc-toggle-track: #cbd2d9;
+        linear-gradient(135deg, rgba(0,81,90,.05), rgba(200,169,110,.05));
+    --mc-toggle-track:   #cbd2d9;
     --mc-canvas-empty-bg: #f3f5f8;
 }
 
 [data-theme="dark"] {
-    /* Neutrale Flaechen — invertiert */
-    --mc-bg:           #0f1419;
-    --mc-bg-card:      #172026;
-    --mc-border:       #283541;
-    --mc-text:         #cbd5e1;
-    --mc-text-dark:    #f1f5f9;
-    --mc-text-muted:   #8a99a8;
+    /* Komplette Farbpalette analog TeamsMB — dunkles Indigo-Schwarz mit
+       Cyan-Teal als Akzent. Keine Magenta/Blau/Violet-Spotlights mehr. */
+    --mc-bg:           #111118;
+    --mc-bg-card:      #1c1c26;
+    --mc-border:       #2c2c3a;
+    --mc-text:         #d0d0dc;
+    --mc-text-dark:    #e8e8f0;
+    --mc-text-muted:   #7a7a8a;
 
-    /* Petrol → Dunkles Magenta im Dark Mode (war Violet, dann Petrol-Gruen).
-       Cascade greift fuer alle var(--mc-petrol)-Verwendungen automatisch. */
-    --mc-petrol:       #C2185B;
-    --mc-petrol-dark:  #9D174D;
-    --mc-petrol-light: #EC4899;
+    /* Petrol wird im Dark Mode zu Cyan-Teal (heller). Token-Cascade
+       greift fuer alle var(--mc-petrol)-Verwendungen automatisch.
+       Konvention von TeamsMB: -dark = HELLER, -light = DUNKLER. */
+    --mc-petrol:       #5aabb5;
+    --mc-petrol-dark:  #7cc4cc;
+    --mc-petrol-light: #3d8a94;
 
-    /* Akzent-Farben kraeftiger im Dark Mode — Magenta + Blau staerker */
-    --mc-accent-blue:        #5DADE2;
-    --mc-accent-blue-soft:   rgba(93, 173, 226, .22);
-    --mc-accent-blue-tint:   rgba(93, 173, 226, .12);
-    --mc-accent-magenta:     #EC407A;
-    --mc-accent-magenta-soft: rgba(236, 64, 122, .22);
-    --mc-accent-magenta-tint: rgba(236, 64, 122, .12);
+    /* Gold im Dark Mode etwas waermer/heller */
+    --mc-gold:         #d4b47a;
+    --mc-gold-light:   #e0c79a;
+    --mc-gold-dark:    #b89860;
 
-    /* Status-Hintergruende dezenter im Dunkeln */
-    --mc-success-bg:   rgba(16,185,129,.15);
-    --mc-warning-bg:   rgba(245,158,11,.15);
-    --mc-danger-bg:    rgba(239,68,68,.15);
+    /* Status-Farben im TeamsMB-Stil */
+    --mc-success:      #34d399;
+    --mc-warning:      #f87171;
+    --mc-success-bg:   rgba(52, 211, 153, .15);
+    --mc-warning-bg:   rgba(248, 113, 113, .15);
+    --mc-danger-bg:    rgba(239, 68, 68, .15);
 
-    /* Schatten staerker fuer Tiefe auf dunklem Grund */
-    --mc-shadow:       0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
-    --mc-shadow-lg:    0 10px 25px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3);
-    --mc-shadow-xl:    0 24px 50px rgba(0,0,0,0.55), 0 8px 16px rgba(0,0,0,0.35);
+    /* Schatten im TeamsMB-Stil */
+    --mc-shadow:       0 1px 6px rgba(0,0,0,0.30);
+    --mc-shadow-lg:    0 4px 20px rgba(0,0,0,0.40);
+    --mc-shadow-xl:    0 20px 40px rgba(0,0,0,0.50);
 
-    /* Body: Magenta + Blau Duo (kein Violet, kein Petrol-Gruen mehr) */
-    --mc-bg-grad:
-        radial-gradient(circle at 0% 0%, rgba(93, 173, 226, .20), transparent 45%),
-        radial-gradient(circle at 100% 100%, rgba(236, 64, 122, .22), transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(157, 23, 77, .16), transparent 60%),
-        linear-gradient(180deg, #0e1318 0%, #131a20 100%);
+    /* Body: plain — keine bunten Spotlights mehr */
+    --mc-bg-grad:      var(--mc-bg);
 
-    /* Theme-Helfer fuer Komponenten mit individuellem Hintergrund */
-    --mc-sidebar-grad:
-        linear-gradient(180deg,
-            #161e26 0%,
-            #131a21 50%,
-            #0e1318 100%);
-    --mc-card-input-bg: #0f1419;
-    --mc-modal-footer-bg: #0d1318;
+    /* Sidebar: solid TeamsMB-Schwarz-Indigo */
+    --mc-sidebar-grad:        #16161e;
+    --mc-card-input-bg:       #1c1c26;
+    --mc-modal-footer-bg:     #16161e;
+
+    /* Wheel-Frame: dezenter Gold-Glow auf dunklem Card-Hintergrund */
     --mc-wheel-frame-grad:
-        radial-gradient(circle at 25% 20%, rgba(93, 173, 226, .20), transparent 55%),
-        radial-gradient(circle at 75% 80%, rgba(236, 64, 122, .20), transparent 55%),
-        radial-gradient(circle at 50% 50%, rgba(157, 23, 77, .16), transparent 60%),
-        radial-gradient(circle at 50% 30%, rgba(200,169,110,.10), transparent 60%),
-        linear-gradient(180deg, #1a242b 0%, #11181d 100%);
+        radial-gradient(circle at 50% 30%, rgba(212, 180, 122, .10), transparent 60%),
+        linear-gradient(180deg, #1c1c26 0%, #14141c 100%);
     --mc-wheel-result-grad:
-        linear-gradient(135deg, rgba(93, 173, 226, .26), rgba(194, 24, 91, .26), rgba(236, 64, 122, .26));
+        linear-gradient(135deg, rgba(90, 171, 181, .15), rgba(212, 180, 122, .12));
     --mc-confirm-winner-grad:
-        linear-gradient(135deg, rgba(200,169,110,.18), rgba(236, 64, 122, .18));
+        linear-gradient(135deg, rgba(212, 180, 122, .15), rgba(90, 171, 181, .12));
     --mc-app-user-grad:
-        linear-gradient(135deg,
-            rgba(93, 173, 226, .22) 0%,
-            rgba(194, 24, 91, .24) 50%,
-            rgba(236, 64, 122, .22) 100%);
-    --mc-toggle-track: #2c3a47;
-    --mc-canvas-empty-bg: #1a232a;
+        linear-gradient(135deg, rgba(90, 171, 181, .12), rgba(212, 180, 122, .10));
+
+    --mc-toggle-track: #2c2c3a;
+    --mc-canvas-empty-bg: #1c1c26;
 }
 
 * { box-sizing: border-box; }
@@ -237,11 +210,7 @@ a:hover { color: var(--mc-petrol-dark); }
 .app-nav-link:hover { background: rgba(0,81,90,.06); color: var(--mc-petrol); }
 .app-nav-link:hover i { color: var(--mc-petrol); }
 .app-nav-link.active {
-    background:
-        linear-gradient(135deg,
-            rgba(0,81,90,.10) 0%,
-            rgba(200,169,110,.08) 50%,
-            var(--mc-accent-magenta-soft) 100%);
+    background: linear-gradient(135deg, rgba(0,81,90,.12), rgba(200,169,110,.08));
     color: var(--mc-petrol);
     box-shadow: inset 3px 0 0 var(--mc-gold);
 }
@@ -692,17 +661,14 @@ a:hover { color: var(--mc-petrol-dark); }
 .login-stage {
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
     padding: 2rem 1rem;
-    background: radial-gradient(ellipse at top, #2a1024 0%, #14081a 60%, #0a040c 100%);
+    background: radial-gradient(ellipse at top, #1f1f2e 0%, #14141c 60%, #0c0c14 100%);
     position: relative; overflow: hidden;
 }
 .login-stage::before {
     content: ''; position: absolute; inset: 0;
     background:
-        radial-gradient(circle at 15% 20%, rgba(200, 169, 110, .14), transparent 45%),
-        radial-gradient(circle at 85% 80%, rgba(236, 64, 122, .22), transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(93, 173, 226, .18), transparent 55%),
-        radial-gradient(circle at 75% 25%, rgba(194, 24, 91, .22), transparent 55%),
-        radial-gradient(circle at 25% 75%, rgba(157, 23, 77, .18), transparent 50%);
+        radial-gradient(circle at 25% 25%, rgba(90, 171, 181, .14), transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(212, 180, 122, .12), transparent 50%);
 }
 .login-card {
     position: relative; z-index: 2;
@@ -1386,47 +1352,42 @@ body.wheel-fs .wheel-pointer {
 [data-theme="dark"] .app-nav-link {
     color: var(--mc-text);
 }
+/* Dark Mode: Hover/Active analog TeamsMB — plain primary-tinted Overlays */
 [data-theme="dark"] .app-nav-link:hover {
-    background: linear-gradient(135deg, rgba(194, 24, 91, .16), rgba(236, 64, 122, .12));
-    color: var(--mc-petrol-light);
+    background: rgba(90, 171, 181, .10);
+    color: var(--mc-petrol);
 }
-[data-theme="dark"] .app-nav-link:hover i { color: var(--mc-petrol-light); }
+[data-theme="dark"] .app-nav-link:hover i { color: var(--mc-petrol); }
 [data-theme="dark"] .app-nav-link.active {
-    background:
-        linear-gradient(135deg,
-            rgba(93, 173, 226, .25) 0%,
-            rgba(194, 24, 91, .30) 50%,
-            rgba(236, 64, 122, .25) 100%);
-    color: var(--mc-gold-light);
+    background: rgba(90, 171, 181, .14);
+    color: var(--mc-petrol);
     box-shadow: inset 3px 0 0 var(--mc-gold);
 }
 
-/* Im Dark Mode: Petrol-Buttons + Hub bekommen jetzt Magenta-Schatten,
-   damit sie zur neuen dunkel-magenta Hauptfarbe passen. */
+/* Box-Shadows im Dark Mode mit Cyan-Teal-Glow statt Magenta */
 [data-theme="dark"] .btn-mc-primary {
-    box-shadow: 0 4px 14px rgba(194, 24, 91, .45);
+    box-shadow: 0 4px 14px rgba(90, 171, 181, .30);
 }
 [data-theme="dark"] .btn-mc-primary:hover {
-    box-shadow: 0 8px 22px rgba(194, 24, 91, .55);
+    box-shadow: 0 8px 22px rgba(90, 171, 181, .45);
 }
 [data-theme="dark"] .wheel-hub {
-    box-shadow: 0 6px 18px rgba(194, 24, 91, .50), inset 0 2px 0 rgba(255,255,255,.15);
+    box-shadow: 0 6px 18px rgba(90, 171, 181, .35), inset 0 2px 0 rgba(255,255,255,.15);
 }
 [data-theme="dark"] .emp-avatar:hover {
-    box-shadow: 0 6px 18px rgba(194, 24, 91, .40);
+    box-shadow: 0 6px 18px rgba(90, 171, 181, .25);
 }
 [data-theme="dark"] .emp-table tbody tr:hover {
-    background: rgba(194, 24, 91, .10);
+    background: rgba(90, 171, 181, .08);
 }
 
-/* Login-Title im Dark Mode mit Gradient-Text fuer schoenen Magenta-Glow,
-   dezente Text-Shadow fuer Kontrast auf dunklem Hintergrund. */
+/* Login-Title im Dark Mode: Gold→Cyan-Teal Gradient-Text */
 [data-theme="dark"] .login-title {
-    background: linear-gradient(135deg, #EC4899 0%, #C2185B 50%, #EC407A 100%);
+    background: linear-gradient(135deg, #d4b47a 0%, #5aabb5 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 8px rgba(194, 24, 91, .35));
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,.45));
 }
 [data-theme="dark"] .app-nav-link.active i { color: var(--mc-gold); }
 

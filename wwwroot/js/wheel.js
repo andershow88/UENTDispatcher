@@ -12,15 +12,18 @@
     // Akzenten (Saphir-Blau, Magenta) — bringt Farbe ins Rad ohne die CI
     // zu sprengen. Reihenfolge ist absichtlich abwechselnd, damit Nachbarn
     // sich kontrastreich abheben.
+    // Slice-Farben analog TeamsMB-Palette: Petrol/Cyan + Gold + KPI-
+    // Akzente (gedaempfte Blau/Gruen/Lila-Toene). Funktioniert in beiden
+    // Themes — auf hellem Hintergrund satt, auf dunklem ruhig leuchtend.
     var SLICE_COLORS = [
         '#00515A', // Petrol
-        '#C2185B', // Magenta
         '#C8A96E', // Gold
-        '#1565C0', // Saphir-Blau
-        '#9D174D', // Magenta-dark
-        '#E91E63', // Magenta-vibrant
-        '#42A5F5', // Blau-light
-        '#5DADE2'  // Saphir-light
+        '#5aabb5', // Cyan-Teal (Dark-Mode-Primary)
+        '#7090d4', // Soft Blau
+        '#39747A', // Petrol-light
+        '#7abf90', // Soft Gruen
+        '#b89860', // Gold-dark
+        '#b080d8'  // Soft Lila
     ];
 
     var state = {
@@ -921,13 +924,14 @@
     };
 
     // ── Konfetti: Balloon-Pop-Burst + Dauer-Regen ──────────────────────────
-    // CONFETTI_COLORS: Schwerpunkt jetzt auf Magenta + Blau (kein Violet
-    // mehr, kein Petrol-Gruen). Drei Magenta- und drei Blau-Toene plus
-    // Gold-Akzente.
+    // CONFETTI_COLORS analog TeamsMB-Palette — Petrol/Cyan-Teal-Familie,
+    // Gold-Familie, KPI-artige Soft-Toene (Blau/Gruen/Lila).
     var CONFETTI_COLORS = [
-        '#C8A96E', '#D4BB8A',                                      // Gold
-        '#9D174D', '#C2185B', '#E91E63', '#EC407A', '#F472B6',     // Magenta
-        '#1565C0', '#1976D2', '#42A5F5', '#5DADE2', '#7DD3FC'      // Blau
+        '#00515A', '#39747A', '#5aabb5', '#7cc4cc',  // Petrol/Cyan-Teal
+        '#C8A96E', '#D4BB8A', '#d4b47a', '#b89860',  // Gold
+        '#7abf90',                                     // Soft Gruen
+        '#7090d4',                                     // Soft Blau
+        '#b080d8'                                      // Soft Lila
     ];
 
     function spawnBurstPiece() {
