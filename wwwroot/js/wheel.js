@@ -221,9 +221,14 @@
         drawWheel();
         updateStatusPanel();
         // Nach jeder Toggle-Aktion das Dropdown automatisch zumachen.
-        // Das setzt details.open = false → toggle-Event feuert → Auto-Scroll
-        // zurueck zur Original-Position (siehe setupSperrlisteAutoScroll).
-        if (row && row.tagName === 'DETAILS' && row.open) row.open = false;
+        // Markieren, dass der Close vom Toggle-Klick kommt → der toggle-
+        // Handler scrollt dann nicht zurueck zur Original-Position, sondern
+        // direkt zum Drehen-Button. Sonst zieht der Smooth-Scroll den
+        // Button waehrend des Klicks unter dem Mauszeiger weg.
+        if (row && row.tagName === 'DETAILS' && row.open) {
+            row.dataset.closedByToggle = '1';
+            row.open = false;
+        }
     }
 
     // Sperrliste-Dropdown: beim Aufklappen autoscroll zur Box, beim
@@ -241,6 +246,14 @@
                 requestAnimationFrame(function () {
                     details.scrollIntoView({ behavior: 'smooth', block: 'end' });
                 });
+            } else if (details.dataset.closedByToggle === '1') {
+                // Close kam vom Toggle-Klick → User will als naechstes meist
+                // "Drehen" klicken. Scroll direkt zum Button (block:center),
+                // damit er klickbar ist. Kein Scroll-Back zur Original-Pos,
+                // sonst bewegt sich der Button waehrend der User klickt.
+                delete details.dataset.closedByToggle;
+                var btnSpin = document.getElementById('btnSpin');
+                if (btnSpin) btnSpin.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
                 window.scrollTo({ top: savedScrollY, behavior: 'smooth' });
             }
@@ -439,7 +452,9 @@
                     ctx.fillText('🔒', bx, by + badgeR * 0.05);
                 }
 
-                // Vorname als kleines Label am Aussenrand
+                // Vorname als kleines Label am Aussenrand. Etwas kleiner +
+                // naeher zum Rand, damit das Label bei wenigen Slices nicht
+                // die Foto-Disc beruehrt (Disc liegt bei ~0.46–0.78 r).
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(midAngle);
@@ -447,10 +462,10 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = isLight(color) ? '#1a202c' : '#ffffff';
                 var firstName = (slices[i].anzeigename || '').split(' ')[0] || '';
-                var baseLabelSize = slices.length > 18 ? 10 : (slices.length > 14 ? 11 : (slices.length > 10 ? 12 : 13));
+                var baseLabelSize = slices.length > 18 ? 9 : (slices.length > 14 ? 10 : (slices.length > 10 ? 10.5 : 11));
                 var labelSize = Math.round(baseLabelSize * sizeFactor);
                 ctx.font = '600 ' + labelSize + 'px Inter, system-ui, sans-serif';
-                ctx.fillText(truncate(firstName, 14), radius - Math.round(10 * sizeFactor), 0);
+                ctx.fillText(truncate(firstName, 14), radius - Math.round(6 * sizeFactor), 0);
                 ctx.restore();
             } else {
                 // ── Normalansicht: nur Name als radiales Label ───────────
