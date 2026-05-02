@@ -316,8 +316,16 @@ a:hover { color: var(--mc-petrol-dark); }
 }
 
 .wheel-canvas-wrap {
+    /* Skaliert mit dem verfuegbaren Platz: nimmt die ganze Breite der
+       mittleren Spalte (width:100%), wird aber nach oben durch die
+       Bildschirmhoehe gedeckelt (sonst wuerde es vertikal aus der Seite
+       wachsen). Aspect-ratio 1 haelt es immer quadratisch.
+       calc(100vh - 280px) reserviert ca. 280 px fuer Page-Header,
+       Drehen-Button und Toggle-Row drumherum. */
     position: relative;
-    width: 100%; max-width: 560px; aspect-ratio: 1;
+    width: 100%;
+    max-width: calc(100vh - 280px);
+    aspect-ratio: 1;
     margin: 0 auto;
 }
 .wheel-canvas {
