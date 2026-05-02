@@ -59,13 +59,85 @@
                 <p style="margin-top:0;">Der hier gesetzte Wert greift in folgenden Bereichen sofort:</p>
                 <ul style="padding-left:1.1rem; margin:0;">
                     <li>Bei jeder neuen <strong>Bestätigung</strong> wird die Sperre auf die aktuelle Tagesanzahl gesetzt.</li>
-                    <li>Hinweis-Texte auf der Glücksrad-Seite, im Override-Toggle und im Bestätigungs-Modal verwenden den neuen Wert.</li>
+                    <li>Hinweis-Texte auf der Dispatch-o-Mat-Seite, im Override-Toggle und im Bestätigungs-Modal verwenden den neuen Wert.</li>
                     <li>Verlaufs-Einträge enthalten weiterhin den damals geltenden Wert (kein Rückwirken).</li>
                 </ul>
             </div>
         </div>
     </div>
 
+</div>
+
+<!-- ────────── Anwender-Berechtigungen (was darf "user" / der Anwender-Login?) ────────── -->
+<div class="mc-card" style="margin-top: 1.4rem;">
+    <div class="mc-card-header">
+        <div class="mc-card-title"><i class="bi bi-shield-lock"></i> Anwender-Berechtigungen</div>
+    </div>
+    <div class="mc-card-body">
+        <p style="margin-top:0; font-size:.9rem; line-height:1.6;">
+            Hier steuerst du, was Anwender (Rolle „User", inkl. dem klick-Login als „Anwender") tun dürfen.
+            <strong>Default ist alles aus</strong> — der Anwender sieht das Drehrad, kann aber nichts auslösen.
+            Admins sind von dieser Einstellung nicht betroffen, sie dürfen ohnehin alles.
+        </p>
+
+        <div class="login-error" id="permsError" style="display:none;"></div>
+        <div class="login-error" id="permsSuccess" style="display:none; background:rgba(16,185,129,.15); color:var(--mc-success); border-color:rgba(16,185,129,.3);"></div>
+
+        <div class="perms-grid">
+            <label class="perm-row">
+                <div class="perm-row-text">
+                    <div class="perm-row-title"><i class="bi bi-arrow-repeat"></i> Drehrad drehen</div>
+                    <div class="perm-row-hint">
+                        Wenn aus: Klick auf „Drehen" zeigt das Sperr-Bild „DU SOLLST WARTEN!" im Vollbild.
+                    </div>
+                </div>
+                <button type="button" id="permDrehen" class="toggle-switch @(Model.UserDarfDrehen ? "on" : "")"
+                        data-perm="drehen" aria-label="Drehen erlauben"></button>
+            </label>
+
+            <label class="perm-row">
+                <div class="perm-row-text">
+                    <div class="perm-row-title"><i class="bi bi-clock-history"></i> Verlauf öffnen</div>
+                    <div class="perm-row-hint">
+                        Wenn aus: Sidebar-Eintrag ist ausgegraut, Direktaufruf der Seite leitet zurück zum Dispatch-o-Mat.
+                    </div>
+                </div>
+                <button type="button" id="permVerlauf" class="toggle-switch @(Model.UserDarfVerlaufSehen ? "on" : "")"
+                        data-perm="verlauf" aria-label="Verlauf erlauben"></button>
+            </label>
+
+            <label class="perm-row">
+                <div class="perm-row-text">
+                    <div class="perm-row-title"><i class="bi bi-people"></i> Teilnehmende-Liste interaktiv</div>
+                    <div class="perm-row-hint">
+                        Wenn aus: Box ist ausgegraut, lässt sich aber weiterhin auf-/zuklappen — sonst nichts.
+                    </div>
+                </div>
+                <button type="button" id="permTeilnehmende" class="toggle-switch @(Model.UserDarfTeilnehmendeAktiv ? "on" : "")"
+                        data-perm="teilnehmende" aria-label="Teilnehmende-Liste interaktiv erlauben"></button>
+            </label>
+
+            <label class="perm-row">
+                <div class="perm-row-text">
+                    <div class="perm-row-title"><i class="bi bi-shield-exclamation"></i> „Sperrliste ignorieren" bedienen</div>
+                    <div class="perm-row-hint">
+                        Wenn aus: Toggle bleibt sichtbar (auch zum Lesen des Hinweistexts), reagiert aber nicht auf Klicks.
+                    </div>
+                </div>
+                <button type="button" id="permSperrliste" class="toggle-switch @(Model.UserDarfSperrlisteToggeln ? "on" : "")"
+                        data-perm="sperrliste" aria-label="Sperrliste-Toggle erlauben"></button>
+            </label>
+        </div>
+
+        <div style="margin-top:1.2rem; display:flex; align-items:center; gap:1rem;">
+            <button type="button" class="btn-mc btn-mc-primary" id="permsSaveBtn" onclick="savePermissions()">
+                <i class="bi bi-check2"></i> Berechtigungen speichern
+            </button>
+            <span class="muted" style="font-size:.82rem;">
+                Greift sofort. Anwender muss die Seite neu laden, um die neuen Rechte zu sehen.
+            </span>
+        </div>
+    </div>
 </div>
 
 @if (ownUser != null)
@@ -187,7 +259,7 @@
             </tbody>
         </table>
         <div class="muted" style="font-size:.82rem; margin-top:.8rem;">
-            Admins dürfen alles. User sehen Glücksrad, Verlauf, Das Team und Hinweise — aber dürfen nichts ändern.
+            Admins dürfen alles. User sehen Dispatch-o-Mat, Verlauf, Das Team und Hinweise — aber dürfen nichts ändern.
         </div>
     </div>
 </div>
@@ -547,5 +619,50 @@
             closeUserModal();
         }
     });
+
+    // ── Anwender-Berechtigungen: Toggle + Save ────────────────────────
+    document.querySelectorAll('.perms-grid .toggle-switch').forEach(function (btn) {
+        btn.addEventListener('click', function () { btn.classList.toggle('on'); });
+    });
+
+    async function savePermissions() {
+        var err = document.getElementById('permsError');
+        var ok = document.getElementById('permsSuccess');
+        var btn = document.getElementById('permsSaveBtn');
+        err.style.display = 'none';
+        ok.style.display = 'none';
+
+        var payload = {
+            userDarfDrehen: document.getElementById('permDrehen').classList.contains('on'),
+            userDarfVerlaufSehen: document.getElementById('permVerlauf').classList.contains('on'),
+            userDarfTeilnehmendeAktiv: document.getElementById('permTeilnehmende').classList.contains('on'),
+            userDarfSperrlisteToggeln: document.getElementById('permSperrliste').classList.contains('on')
+        };
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Speichere…';
+        try {
+            var res = await fetch('/Settings/UpdatePermissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            var data = await res.json();
+            if (!data.ok) {
+                err.textContent = data.error || 'Speichern fehlgeschlagen.';
+                err.style.display = 'block';
+            } else {
+                ok.innerHTML = '<i class="bi bi-check2-circle"></i> Berechtigungen aktualisiert.';
+                ok.style.display = 'block';
+                setTimeout(function () { ok.style.display = 'none'; }, 4000);
+            }
+        } catch (e) {
+            err.textContent = 'Verbindungsfehler: ' + e.message;
+            err.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2"></i> Berechtigungen speichern';
+        }
+    }
 </script>
 }

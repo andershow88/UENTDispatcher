@@ -57,6 +57,38 @@ public class SettingsController : Controller
         return Json(new { ok = true, sperreTage = settings.SperreTage });
     }
 
+    public record UpdatePermissionsRequest(
+        bool UserDarfDrehen,
+        bool UserDarfVerlaufSehen,
+        bool UserDarfTeilnehmendeAktiv,
+        bool UserDarfSperrlisteToggeln);
+
+    /// <summary>Berechtigungen fuer die Rolle "User" (inkl. anonymem Anwender)
+    /// als Bool-Flags speichern. Default = alles aus.</summary>
+    [HttpPost]
+    public async Task<IActionResult> UpdatePermissions([FromBody] UpdatePermissionsRequest req)
+    {
+        if (!User.IsInRole("Admin")) return Json(new { ok = false, error = "Nur Admins." });
+        if (req == null) return Json(new { ok = false, error = "Ungueltige Anfrage." });
+
+        var settings = await _db.AppSettings.FirstOrDefaultAsync();
+        if (settings == null)
+        {
+            settings = new AppSettings { Id = 1, SperreTage = 21 };
+            _db.AppSettings.Add(settings);
+        }
+        settings.UserDarfDrehen = req.UserDarfDrehen;
+        settings.UserDarfVerlaufSehen = req.UserDarfVerlaufSehen;
+        settings.UserDarfTeilnehmendeAktiv = req.UserDarfTeilnehmendeAktiv;
+        settings.UserDarfSperrlisteToggeln = req.UserDarfSperrlisteToggeln;
+        settings.ZuletztGeaendertUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _log.LogInformation("Anwender-Berechtigungen aktualisiert: Drehen={D}, Verlauf={V}, Teilnehmende={T}, Sperrliste={S}",
+            req.UserDarfDrehen, req.UserDarfVerlaufSehen, req.UserDarfTeilnehmendeAktiv, req.UserDarfSperrlisteToggeln);
+        return Json(new { ok = true });
+    }
+
     // ── Benutzerverwaltung ──────────────────────────────────────────────
 
     public record CreateUserRequest(string Benutzername, string Anzeigename, string Rolle);

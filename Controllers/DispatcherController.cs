@@ -5,21 +5,36 @@ using UENTDispatcher.Services;
 namespace UENTDispatcher.Controllers;
 
 /// <summary>
-/// API-Endpunkte fuer das Glücksrad: Spin, Confirm, Log.
+/// API-Endpunkte fuer das Dispatch-o-Mat: Spin, Confirm, Log.
 /// Wird aus der Wheel-Page (Home/Index) per fetch() angesprochen.
 /// </summary>
 [Route("[controller]")]
 public class DispatcherController : Controller
 {
     private readonly DispatcherService _svc;
-    public DispatcherController(DispatcherService svc) => _svc = svc;
+    private readonly PermissionService _perm;
+    public DispatcherController(DispatcherService svc, PermissionService perm)
+    {
+        _svc = svc;
+        _perm = perm;
+    }
 
     public record SpinRequest(bool BlacklistIgnoriert);
 
     [HttpPost("Spin")]
     public async Task<IActionResult> Spin([FromBody] SpinRequest? req)
     {
-        var includeBlocked = req?.BlacklistIgnoriert ?? false;
+        // Anwender-Sperre: ohne Drehen-Berechtigung gibt der Server keinen
+        // Winner zurueck — Client zeigt das "DU SOLLST WARTEN!"-Modal.
+        // Server-side enforced, kein Bypass via DevTools moeglich.
+        var perms = await _perm.GetForAsync(User);
+        if (!perms.DarfDrehen)
+            return Json(new { ok = false, blocked = true, error = "Drehen ist fuer Anwender aktuell deaktiviert." });
+
+        // Override (Sperrliste ignorieren) ebenfalls nur bei entsprechendem Recht
+        // — sonst kann der Anwender per DevTools das Flag mitsenden, obwohl der
+        // UI-Toggle deaktiviert ist.
+        var includeBlocked = (req?.BlacklistIgnoriert ?? false) && perms.DarfSperrlisteToggeln;
         var result = await _svc.SpinAsync(includeBlocked);
         return Json(new
         {
@@ -48,10 +63,17 @@ public class DispatcherController : Controller
     [HttpPost("Confirm")]
     public async Task<IActionResult> Confirm([FromBody] ConfirmRequest req)
     {
+        // Confirm ohne Drehen-Recht ist sinnlos und potenziell missbrauchbar
+        // (DevTools koennte einen Spin umgehen). Daher hier zusaetzlich blocken.
+        var perms = await _perm.GetForAsync(User);
+        if (!perms.DarfDrehen)
+            return Json(new { ok = false, error = "Bestaetigen ist fuer Anwender aktuell deaktiviert." });
+
         if (req == null || req.EmployeeId <= 0)
             return Json(new { ok = false, error = "Ungueltige Anfrage." });
 
-        var result = await _svc.ConfirmAsync(req.EmployeeId, req.BlacklistIgnoriert);
+        var blacklistIgnoriert = req.BlacklistIgnoriert && perms.DarfSperrlisteToggeln;
+        var result = await _svc.ConfirmAsync(req.EmployeeId, blacklistIgnoriert);
         return Json(new
         {
             ok = result.Erfolgreich,
@@ -85,6 +107,11 @@ public class DispatcherController : Controller
     [HttpGet("Log")]
     public async Task<IActionResult> Log()
     {
+        // Anwender-Sperre: ohne Verlauf-Berechtigung zur Startseite zurueck.
+        var perms = await _perm.GetForAsync(User);
+        if (!perms.DarfVerlaufSehen)
+            return RedirectToAction("Index", "Home");
+
         var entries = await _svc.ListLogAsync();
         return View(entries);
     }

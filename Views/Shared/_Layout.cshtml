@@ -1,9 +1,13 @@
+@inject UENTDispatcher.Services.PermissionService PermissionService
 @{
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var anzeigename = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
         ?? User.Identity?.Name ?? "";
     var rolle = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+    var perms = User.Identity?.IsAuthenticated == true
+        ? await PermissionService.GetForAsync(User)
+        : UENTDispatcher.Services.UserPermissions.AlleAus;
 }
 <!DOCTYPE html>
 <html lang="de">
@@ -44,14 +48,25 @@
             <li>
                 <a asp-controller="Home" asp-action="Index"
                    class="app-nav-link @(ctrl == "Home" ? "active" : "")">
-                    <i class="bi bi-bullseye"></i> <span>Glücksrad</span>
+                    <i class="bi bi-bullseye"></i> <span>Dispatch-o-Mat</span>
                 </a>
             </li>
             <li>
-                <a asp-controller="Dispatcher" asp-action="Log"
-                   class="app-nav-link @(ctrl == "Dispatcher" && action == "Log" ? "active" : "")">
-                    <i class="bi bi-clock-history"></i> <span>Verlauf</span>
-                </a>
+                @if (perms.DarfVerlaufSehen)
+                {
+                    <a asp-controller="Dispatcher" asp-action="Log"
+                       class="app-nav-link @(ctrl == "Dispatcher" && action == "Log" ? "active" : "")">
+                        <i class="bi bi-clock-history"></i> <span>Verlauf</span>
+                    </a>
+                }
+                else
+                {
+                    <span class="app-nav-link app-nav-disabled" aria-disabled="true"
+                          title="Verlauf ist fuer Anwender aktuell nicht freigegeben">
+                        <i class="bi bi-clock-history"></i> <span>Verlauf</span>
+                        <i class="bi bi-lock-fill app-nav-lock"></i>
+                    </span>
+                }
             </li>
             <li>
                 <a asp-controller="Employees" asp-action="Index"

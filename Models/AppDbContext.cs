@@ -64,6 +64,26 @@ public class AppSettings
     public int SperreTage { get; set; } = 21;
 
     public DateTime ZuletztGeaendertUtc { get; set; } = DateTime.UtcNow;
+
+    // ── Anwender-Berechtigungen (Rolle "User", inkl. anonymem "anwender"-Login) ──
+    // Default: alles aus. Admin schaltet schrittweise frei. Greift sowohl
+    // serverseitig (Endpoints geben 403/blocked zurueck) als auch in der UI
+    // (ausgegraute Links/Buttons, Sperr-Modal beim Drehen).
+    /// <summary>Darf der Anwender das Drehrad tatsaechlich drehen? Wenn false,
+    /// wird beim Drehen-Klick das "DU SOLLST WARTEN!"-Sperr-Modal gezeigt.</summary>
+    public bool UserDarfDrehen { get; set; } = false;
+
+    /// <summary>Darf der Anwender den Verlauf oeffnen? Wenn false, ist der
+    /// Sidebar-Link ausgegraut und die Log-Page liefert 403.</summary>
+    public bool UserDarfVerlaufSehen { get; set; } = false;
+
+    /// <summary>Darf der Anwender mit der "Teilnehmende"-Box interagieren?
+    /// Wenn false, sind die Eintraege ausgegraut (auf-/zuklappen geht trotzdem).</summary>
+    public bool UserDarfTeilnehmendeAktiv { get; set; } = false;
+
+    /// <summary>Darf der Anwender den "Sperrliste ignorieren"-Toggle bedienen?
+    /// Wenn false, ist der Toggle deaktiviert (Box laesst sich aufklappen).</summary>
+    public bool UserDarfSperrlisteToggeln { get; set; } = false;
 }
 
 public class AppUser

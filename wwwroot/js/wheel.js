@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════════
 // UENT Dispatcher — Wheel-Engine
-//   - Zeichnet Glücksrad mit beliebig vielen Slices.
+//   - Zeichnet Dispatch-o-Mat mit beliebig vielen Slices.
 //   - Spin: Server liefert Gewinner, Animation landet visuell auf der Slice.
 //   - Bestätigung getrennt vom Spin: nur bestätigte Auswahl wird persistiert.
 // ════════════════════════════════════════════════════════════════════════════
@@ -42,7 +42,15 @@
         flyPhaseCTimer: null,
         confettiRainTimer: null,
         confettiBurstTimer: null,
-        rainTimers: []          // Logo-/Foto-Regen waehrend Vollbild-Spin
+        rainTimers: [],         // Logo-/Foto-Regen waehrend Vollbild-Spin
+        // Anwender-Berechtigungen — Default alles aus, ueberschrieben von init().
+        // Server-Seite enforced ohnehin; das hier ist nur fuer die UI.
+        perms: {
+            darfDrehen: false,
+            darfTeilnehmendeAktiv: false,
+            darfSperrlisteToggeln: false,
+            istAdmin: false
+        }
     };
 
     // Foto-Cache: id → HTMLImageElement | null. null = Ladeversuch lief, Foto
@@ -50,7 +58,7 @@
     // doppelte Requests und 404-Loops.
     var photoCache = {};
 
-    function init(initialStatus, antiforgeryToken, sperreTage) {
+    function init(initialStatus, antiforgeryToken, sperreTage, permissions) {
         state.candidates = (initialStatus || []).map(s => ({
             id: s.Id || s.id,
             anzeigename: (s.Vorname || s.vorname || '').trim(),  // nur Vorname
@@ -59,6 +67,13 @@
         }));
         state.antiforgeryToken = antiforgeryToken;
         if (typeof sperreTage === 'number' && sperreTage >= 0) state.sperreTage = sperreTage;
+        if (permissions && typeof permissions === 'object') {
+            state.perms.darfDrehen = !!permissions.darfDrehen;
+            state.perms.darfTeilnehmendeAktiv = !!permissions.darfTeilnehmendeAktiv;
+            state.perms.darfSperrlisteToggeln = !!permissions.darfSperrlisteToggeln;
+            state.perms.istAdmin = !!permissions.istAdmin;
+        }
+        applyPermissionStyles();
         recomputeEligible();
         drawWheel();
         updateStatusPanel();
@@ -92,6 +107,12 @@
         });
         // Ebenfalls: tab-/window-Wechsel mid-spin → Spin abbrechen, sauberer State
         window.addEventListener('pagehide', function () { cancelSpin(); });
+        // ESC schliesst das Wait-Overlay (Sperr-Modal fuer Anwender ohne Recht).
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            var overlay = document.getElementById('waitOverlay');
+            if (overlay && overlay.classList.contains('open')) hideWaitOverlay();
+        });
     }
 
     // Foto-Flug aufraeumen — Timer canceln, fliegendes Element entfernen,
@@ -223,15 +244,63 @@
             : state.candidates.filter(c => !c.gesperrt);
     }
 
+    // ── Wait-Overlay: "DU SOLLST WARTEN!" ──────────────────────────────────
+    // Wird gezeigt, wenn ein Anwender ohne Drehen-Berechtigung den Drehen-
+    // Button drueckt. Vollbild-Overlay, manuell schliessbar via Button oder
+    // ESC. Server liefert ohnehin keinen Spin — das Overlay ist die freund-
+    // lich-plakative UX-Variante des "noch nicht!".
+    function showWaitOverlay() {
+        var overlay = document.getElementById('waitOverlay');
+        if (!overlay) return;
+        // Native Fullscreen optional — auf Desktop schoener, mobil oft blockiert.
+        // Visueller Vollbild-Look macht overlay alleine.
+        overlay.classList.add('open');
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(function () {});
+        }
+        var dismiss = document.getElementById('waitDismissBtn');
+        if (dismiss) setTimeout(function () { dismiss.focus(); }, 50);
+    }
+
+    function hideWaitOverlay() {
+        var overlay = document.getElementById('waitOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(function () {});
+        }
+    }
+
+    // Anwender-Berechtigungen aufs Markup uebertragen — Toggle/Status-Panel
+    // visuell als gesperrt darstellen, ohne die Klickbarkeit der Drehen-/
+    // Auf-/Zu-Klapp-Mechanik zu nehmen. Der eigentliche Schutz sitzt
+    // serverseitig (Spin/Confirm liefern blocked) sowie in toggleBlacklist().
+    function applyPermissionStyles() {
+        var statusCol = document.querySelector('.wheel-status-col');
+        if (statusCol) statusCol.classList.toggle('mc-dimmed', !state.perms.darfTeilnehmendeAktiv);
+
+        var toggleBtn = document.getElementById('toggleBlacklist');
+        var row = document.getElementById('toggleRow');
+        if (toggleBtn) {
+            toggleBtn.classList.toggle('toggle-locked', !state.perms.darfSperrlisteToggeln);
+            toggleBtn.setAttribute('aria-disabled', String(!state.perms.darfSperrlisteToggeln));
+        }
+        if (row) row.classList.toggle('toggle-row-locked', !state.perms.darfSperrlisteToggeln);
+    }
+
     // ── UI Bindings ─────────────────────────────────────────────────────────
     function bindUI() {
         document.getElementById('btnSpin').addEventListener('click', onSpin);
         document.getElementById('toggleBlacklist').addEventListener('click', toggleBlacklist);
+        var dismiss = document.getElementById('waitDismissBtn');
+        if (dismiss) dismiss.addEventListener('click', hideWaitOverlay);
         // Winner-Modal-Buttons sind via inline onclick gebunden (window.onWinnerConfirm/onWinnerRespin)
     }
 
     function toggleBlacklist() {
         if (state.spinning) return;
+        // Anwender ohne Recht → Toggle bleibt visuell deaktiviert, kein Effekt.
+        if (!state.perms.darfSperrlisteToggeln) return;
         state.blacklistIgnoriert = !state.blacklistIgnoriert;
         var btn = document.getElementById('toggleBlacklist');
         var row = document.getElementById('toggleRow');
@@ -590,6 +659,13 @@
     // ── Spin ────────────────────────────────────────────────────────────────
     async function onSpin() {
         if (state.spinning) return;
+        // Anwender ohne Drehen-Berechtigung → Sperr-Modal "DU SOLLST WARTEN!"
+        // anzeigen und sofort raus. Server blockt parallel; selbst wenn jemand
+        // diesen Client-Check umgeht, bekommt er kein Spin-Resultat.
+        if (!state.perms.darfDrehen) {
+            showWaitOverlay();
+            return;
+        }
         // Falls noch ein altes Modal offen ist (z. B. nach Reload mit altem
         // State), zumachen und Token erhoehen, damit alte async-Callbacks
         // erkennen, dass sie nicht mehr aktuell sind.
@@ -632,6 +708,16 @@
         if (myToken !== state.operationToken) return; // abgebrochen waehrend Awaits
 
         if (!resp.ok) {
+            // Server-seitig geblockt (Anwender-Sperre) → Wait-Overlay zeigen.
+            // Permissions im State auch lokal aktualisieren, damit der Folge-
+            // Klick gar nicht erst die API trifft.
+            if (resp.blocked) {
+                state.perms.darfDrehen = false;
+                applyPermissionStyles();
+                cancelSpin();
+                showWaitOverlay();
+                return;
+            }
             // Statuses synchronisieren — falls inzwischen jemand weggefallen ist
             if (resp.kandidaten) {
                 state.candidates = resp.kandidaten.map(c => ({
@@ -721,7 +807,7 @@
         "Service-Desk-Adel diese Woche. Trag die Krone mit Stolz. 👑",
         "Dispatcher-Mode: aktiviert. Möge die Macht mit dir sein.",
         "Diese Woche dreht sich alles um dich. (Wortwörtlich.) 🎯",
-        "Auserwählt vom Glücksrad — und vom Team.",
+        "Auserwählt vom Dispatch-o-Mat — und vom Team.",
         "Frische Dispatcher-Energie. Es kann losgehen!",
         "Tag eins von sieben — du hast das im Griff!",
         "Heute du, nächste Woche jemand anders. Aber jetzt: du!",

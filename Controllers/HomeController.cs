@@ -6,8 +6,13 @@ namespace UENTDispatcher.Controllers;
 public class HomeController : Controller
 {
     private readonly DispatcherService _svc;
+    private readonly PermissionService _perm;
 
-    public HomeController(DispatcherService svc) => _svc = svc;
+    public HomeController(DispatcherService svc, PermissionService perm)
+    {
+        _svc = svc;
+        _perm = perm;
+    }
 
     public async Task<IActionResult> Index()
     {
@@ -17,6 +22,7 @@ public class HomeController : Controller
         var statuses = await _svc.ListEmployeeStatusesAsync();
         ViewBag.Statuses = statuses;
         ViewBag.SperreTage = await _svc.GetSperreTageAsync();
+        ViewBag.Permissions = await _perm.GetForAsync(User);
         return View();
     }
 }

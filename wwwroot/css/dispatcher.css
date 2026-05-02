@@ -1660,3 +1660,175 @@ body.wheel-fs .wheel-pointer {
     color: var(--mc-gold-light);
     border-color: rgba(200,169,110,.4);
 }
+
+/* ════════════════════════════ Anwender-Berechtigungen ════════════════════
+   UI-Komponenten fuer den Permission-Modus: ausgegrauter Sidebar-Eintrag,
+   gesperrter Toggle-Switch, gedimmtes Status-Panel und das "DU SOLLST
+   WARTEN!"-Sperr-Modal. Server enforced ohnehin alles — diese Stile sind
+   die ehrliche UI-Spiegelung des Server-Zustands. */
+
+/* Sidebar: gesperrter Nav-Eintrag (z. B. Verlauf ohne Recht). */
+.app-nav-disabled {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .65rem .85rem;
+    border-radius: 10px;
+    color: var(--mc-text-muted);
+    opacity: .55;
+    cursor: not-allowed;
+    user-select: none;
+    position: relative;
+}
+.app-nav-disabled .app-nav-lock {
+    margin-left: auto;
+    font-size: .82rem;
+    opacity: .8;
+}
+
+/* Toggle-Switch im "gesperrt"-Zustand — bleibt sichtbar, aber clearly off. */
+.toggle-switch.toggle-locked {
+    opacity: .45;
+    cursor: not-allowed;
+    filter: grayscale(.6);
+}
+.toggle-row-locked summary {
+    cursor: pointer;     /* aufklappen geht weiter */
+}
+.toggle-row-locked .toggle-text-hint::after {
+    content: " 🔒 fuer Anwender deaktiviert";
+    color: var(--mc-text-muted);
+    font-style: italic;
+    font-weight: 600;
+}
+
+/* Gedimmtes Status-Panel — Auf-/Zuklappen geht, Eintraege sehen leblos aus. */
+.mc-dimmed {
+    opacity: .55;
+    filter: grayscale(.7);
+}
+.mc-dimmed .person-row,
+.mc-dimmed .badge-locked,
+.mc-dimmed .badge-free {
+    pointer-events: none;
+}
+.mc-dimmed .mc-card-body summary {
+    pointer-events: auto;   /* Auf-/Zuklappen weiterhin moeglich */
+}
+
+/* ── Wait-Overlay: "DU SOLLST WARTEN!" ──────────────────────────────── */
+.wait-overlay {
+    position: fixed; inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+    background: radial-gradient(ellipse at center, rgba(15,20,30,.92), rgba(0,0,0,.97));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.wait-overlay.open {
+    display: flex;
+    animation: waitFadeIn .25s ease;
+}
+@keyframes waitFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.wait-content {
+    text-align: center;
+    color: #fff;
+    max-width: 720px;
+    width: 100%;
+    animation: waitPop .5s cubic-bezier(.18,.8,.2,1.2);
+}
+@keyframes waitPop {
+    0%   { opacity: 0; transform: scale(.7) rotate(-3deg); }
+    60%  { transform: scale(1.06) rotate(1.5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+.wait-image-wrap {
+    margin: 0 auto 1.4rem;
+    max-width: min(70vh, 360px);
+    filter:
+        drop-shadow(0 12px 28px rgba(0,0,0,.55))
+        drop-shadow(0 0 22px rgba(255,180,80,.35));
+    animation: waitShake 1.6s ease-in-out infinite;
+}
+.wait-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+@keyframes waitShake {
+    0%, 100% { transform: rotate(-2deg); }
+    50%      { transform: rotate(2deg); }
+}
+.wait-headline {
+    font-size: clamp(2rem, 7vmin, 4.2rem);
+    font-weight: 900;
+    letter-spacing: .04em;
+    color: #ffd66b;
+    text-shadow:
+        0 4px 16px rgba(0,0,0,.55),
+        0 0 30px rgba(255,180,80,.45);
+    margin-bottom: .4rem;
+    text-transform: uppercase;
+}
+.wait-subline {
+    font-size: clamp(.95rem, 2.2vmin, 1.2rem);
+    font-weight: 500;
+    color: rgba(255,255,255,.85);
+    margin-bottom: 1.6rem;
+    letter-spacing: .02em;
+}
+.wait-dismiss {
+    color: #fff !important;
+    border-color: rgba(255,255,255,.45) !important;
+    background: rgba(255,255,255,.08) !important;
+}
+.wait-dismiss:hover {
+    background: rgba(255,255,255,.18) !important;
+}
+
+/* ── Permissions-Grid in den Einstellungen ──────────────────────────── */
+.perms-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .8rem;
+    margin-top: 1rem;
+}
+.perm-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--mc-border);
+    border-radius: var(--mc-radius);
+    background: var(--mc-bg-card);
+    transition: border-color .15s ease, box-shadow .15s ease;
+    cursor: pointer;
+}
+.perm-row:hover {
+    border-color: var(--mc-petrol);
+    box-shadow: 0 2px 8px rgba(0,81,90,.08);
+}
+.perm-row-text {
+    flex: 1;
+    min-width: 0;
+}
+.perm-row-title {
+    font-weight: 600;
+    color: var(--mc-text-dark);
+    font-size: .95rem;
+    margin-bottom: .15rem;
+}
+.perm-row-title i {
+    color: var(--mc-petrol);
+    margin-right: .35rem;
+}
+.perm-row-hint {
+    font-size: .82rem;
+    color: var(--mc-text-muted);
+    line-height: 1.45;
+}
