@@ -149,20 +149,37 @@ a:hover { color: var(--mc-petrol-dark); }
 .app-sidebar {
     background: var(--mc-sidebar-grad);
     border-right: 1px solid var(--mc-border);
-    padding: 1.4rem 1rem;
+    padding: 1rem .9rem 1rem;
     display: flex; flex-direction: column;
+    /* Bleibt am Viewport kleben — Brand oben, User-Box unten,
+       Nav darfvscrollen wenn die Eintraege zu lang werden. */
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+}
+/* Schmaler Scrollbar im Sidebar (nur sichtbar wenn noetig) */
+.app-sidebar::-webkit-scrollbar { width: 6px; }
+.app-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,.12);
+    border-radius: 3px;
+}
+[data-theme="dark"] .app-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.10);
 }
 
 .app-brand {
     display: flex; flex-direction: column; align-items: center;
     text-align: center;
-    padding: .25rem .25rem 1.4rem;
+    padding: .15rem .25rem 1rem;
     border-bottom: 1px solid var(--mc-border);
-    margin-bottom: 1rem;
+    margin-bottom: .8rem;
+    flex-shrink: 0;
 }
 .app-brand-logo {
-    width: 100%; max-width: 200px; height: auto;
-    margin-bottom: .8rem;
+    width: 100%; max-width: 180px; height: auto;
+    margin-bottom: .6rem;
 }
 .app-brand-title {
     font-size: 1.05rem; font-weight: 700; color: var(--mc-petrol);
@@ -176,10 +193,11 @@ a:hover { color: var(--mc-petrol-dark); }
 
 .app-user {
     margin-top: auto;
-    padding: .9rem .8rem;
+    padding: .75rem .8rem;
     background: var(--mc-app-user-grad);
     border: 1px solid var(--mc-border);
     border-radius: var(--mc-radius-sm);
+    flex-shrink: 0;
 }
 .app-user-label { font-size: .68rem; color: var(--mc-text-muted); text-transform: uppercase; letter-spacing: .1em; }
 .app-user-name  { font-weight: 600; color: var(--mc-text-dark); margin-top: .1rem; }
