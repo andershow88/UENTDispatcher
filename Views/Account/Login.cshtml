@@ -15,10 +15,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/dispatcher.css" asp-append-version="true" />
     <script>
+        // Theme-Bootstrap: erster Aufruf → Hell. Spaeter merkt der Browser
+        // die Auswahl ueber localStorage. Kein prefers-color-scheme-Fallback,
+        // damit "frisches Geraet" immer im Hell-Modus startet.
         (function () {
             try {
                 var stored = localStorage.getItem('uent-theme');
-                var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                var theme = stored || 'light';
                 document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {}
         })();
@@ -59,13 +62,20 @@
             </form>
         </div>
     </div>
-</div>
 
-<!-- ── Modus-Toggle unten rechts ── -->
-<div class="login-mode-corner" id="modeCorner">
-    <span class="login-mode-label-user">User-Zugriff</span>
-    <button type="button" class="login-mode-toggle" id="modeToggle" onclick="toggleLoginMode()" aria-label="Anmeldemodus wechseln"></button>
-    <span class="login-mode-label-admin">Admin-Zugriff</span>
+    <!-- ── Toggles mittig unter dem Login-Card: Theme + Zugriffsmodus ── -->
+    <div class="login-toggles">
+        <div class="login-mode-pill" id="themePill">
+            <span class="login-theme-label-light">Hell</span>
+            <button type="button" class="login-mode-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Theme wechseln"></button>
+            <span class="login-theme-label-dark">Dunkel</span>
+        </div>
+        <div class="login-mode-pill" id="modeCorner">
+            <span class="login-mode-label-user">User-Zugriff</span>
+            <button type="button" class="login-mode-toggle" id="modeToggle" onclick="toggleLoginMode()" aria-label="Anmeldemodus wechseln"></button>
+            <span class="login-mode-label-admin">Admin-Zugriff</span>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -96,6 +106,29 @@
             adminMode.style.display = 'none';
         }
     }
+
+    // Theme-Toggle: schaltet zwischen Hell und Dunkel um. Speichert die
+    // Wahl in localStorage, sodass der Bootstrap-Snippet im <head> beim
+    // naechsten Aufruf direkt das richtige Theme setzt.
+    function toggleTheme() {
+        var current = document.documentElement.getAttribute('data-theme') || 'light';
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('uent-theme', next); } catch (e) {}
+        var pill = document.getElementById('themePill');
+        var btn = document.getElementById('themeToggle');
+        pill.classList.toggle('dark', next === 'dark');
+        btn.classList.toggle('dark', next === 'dark');
+    }
+
+    // Initialisiere Theme-Toggle-Position passend zum aktuell aktiven Theme
+    (function () {
+        var theme = document.documentElement.getAttribute('data-theme') || 'light';
+        if (theme === 'dark') {
+            document.getElementById('themePill').classList.add('dark');
+            document.getElementById('themeToggle').classList.add('dark');
+        }
+    })();
 
     var RETURN_URL = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(returnUrl));
 

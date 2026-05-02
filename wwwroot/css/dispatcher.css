@@ -28,6 +28,12 @@
     --mc-danger:       #ef4444;
     --mc-danger-bg:    #fef2f2;
 
+    /* Magenta-Akzent fuer Light-Mode: dezenter Rose-Magenta-Ton, der
+       mit Petrol harmoniert. Wird auf Link-Hover und Primary-Button-
+       Verlauf gespielt. Bewusst gedaempft (nicht voll #C2185B), damit
+       der Bank-CI-Eindruck Petrol-dominiert bleibt. */
+    --mc-magenta-accent: #A5396A;
+
     /* System */
     --mc-radius:       16px;
     --mc-radius-sm:    10px;
@@ -85,6 +91,10 @@
     --mc-warning-bg:   rgba(248, 113, 113, .15);
     --mc-danger-bg:    rgba(239, 68, 68, .15);
 
+    /* Im Dark-Mode KEINEN Magenta-Akzent — fuehrt der Variable-Cascade
+       die Cyan-Teal-Farbe zu, sodass Buttons/Hover im TeamsMB-Look bleiben. */
+    --mc-magenta-accent: #7cc4cc;
+
     /* Schatten im TeamsMB-Stil */
     --mc-shadow:       0 1px 6px rgba(0,0,0,0.30);
     --mc-shadow-lg:    0 4px 20px rgba(0,0,0,0.40);
@@ -136,7 +146,7 @@ h1,h2,h3,h4,h5,h6 {
 }
 
 a { color: var(--mc-petrol); text-decoration: none; transition: color .2s; }
-a:hover { color: var(--mc-petrol-dark); }
+a:hover { color: var(--mc-magenta-accent); }
 
 /* ═════════════════════════════ Layout-Shell ════════════════════════════════ */
 
@@ -285,11 +295,13 @@ a:hover { color: var(--mc-petrol-dark); }
     transition: var(--mc-transition);
 }
 .btn-mc-primary {
-    background: linear-gradient(135deg, var(--mc-petrol), var(--mc-petrol-dark));
+    /* Petrol bleibt dominant, am Gradient-Ende sitzt ein dezenter Magenta-
+       Akzent — gibt dem Button etwas mehr Tiefe ohne die Bank-CI zu sprengen. */
+    background: linear-gradient(135deg, var(--mc-petrol) 0%, var(--mc-petrol-dark) 65%, var(--mc-magenta-accent) 100%);
     color: #fff;
     box-shadow: 0 4px 14px rgba(0,81,90,.28);
 }
-.btn-mc-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,81,90,.35); color:#fff; }
+.btn-mc-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(165,57,106,.35); color:#fff; }
 .btn-mc-primary:active { transform: translateY(0); }
 .btn-mc-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -786,7 +798,8 @@ a:hover { color: var(--mc-petrol-dark); }
 /* ═════════════════════════════ Login ═══════════════════════════════════════ */
 
 .login-stage {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0;
     padding: 2rem 1rem;
     background: radial-gradient(ellipse at top, #1f1f2e 0%, #14141c 60%, #0c0c14 100%);
     position: relative; overflow: hidden;
@@ -819,11 +832,19 @@ a:hover { color: var(--mc-petrol-dark); }
 }
 .login-subtitle { text-align: center; font-size: .85rem; color: var(--mc-text-muted); margin-bottom: 1.6rem; }
 
-/* Modus-Toggle in der Ecke (Login-Page) */
-.login-mode-corner {
-    position: fixed;
-    bottom: 1.2rem;
-    right: 1.2rem;
+/* Toggle-Reihe mittig unter dem Login-Card. Zwei Pills: Theme + Modus. */
+.login-toggles {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.6rem;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 10;
+}
+/* Einzelner Pill-Container (Label + Switch + Label) */
+.login-mode-pill {
     display: flex;
     align-items: center;
     gap: .55rem;
@@ -837,7 +858,6 @@ a:hover { color: var(--mc-petrol-dark); }
     font-size: .8rem;
     font-weight: 500;
     user-select: none;
-    z-index: 10;
 }
 .login-mode-toggle {
     width: 40px; height: 22px;
@@ -860,15 +880,25 @@ a:hover { color: var(--mc-petrol-dark); }
     transition: left .25s;
     box-shadow: 0 2px 4px rgba(0,0,0,.3);
 }
-.login-mode-toggle.admin {
+/* Beide Switch-Varianten (admin / dark) springen optisch nach rechts */
+.login-mode-toggle.admin,
+.login-mode-toggle.dark {
     background: var(--mc-gold);
 }
-.login-mode-toggle.admin::after { left: 20px; }
+.login-mode-toggle.admin::after,
+.login-mode-toggle.dark::after { left: 20px; }
 
+/* Mode-Toggle Labels: User links / Admin rechts */
 .login-mode-label-user { color: #fff; opacity: 1; transition: opacity .2s; }
 .login-mode-label-admin { opacity: .55; transition: opacity .2s, color .2s; }
-.login-mode-corner.admin .login-mode-label-user { opacity: .55; }
-.login-mode-corner.admin .login-mode-label-admin { opacity: 1; color: var(--mc-gold-light); }
+.login-mode-pill.admin .login-mode-label-user { opacity: .55; }
+.login-mode-pill.admin .login-mode-label-admin { opacity: 1; color: var(--mc-gold-light); }
+
+/* Theme-Toggle Labels: Hell links / Dunkel rechts (analog Mode) */
+.login-theme-label-light { color: #fff; opacity: 1; transition: opacity .2s; }
+.login-theme-label-dark { opacity: .55; transition: opacity .2s, color .2s; }
+.login-mode-pill.dark .login-theme-label-light { opacity: .55; }
+.login-mode-pill.dark .login-theme-label-dark { opacity: 1; color: var(--mc-gold-light); }
 .login-error {
     background: var(--mc-danger-bg); color: var(--mc-danger);
     padding: .65rem .9rem; border-radius: var(--mc-radius-sm);
