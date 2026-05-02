@@ -12,7 +12,7 @@
     </div>
     <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
         <a asp-controller="Home" asp-action="Index" class="btn-mc btn-mc-primary">
-            <i class="bi bi-bullseye"></i> Zum Glücksrad
+            <i class="bi bi-bullseye"></i> Zum Dispatch-o-Mat
         </a>
         @if (istAdmin && Model.Count > 0)
         {
@@ -33,7 +33,7 @@
             <div class="empty-state">
                 <i class="bi bi-inbox"></i>
                 <div style="margin-top:.6rem;">Noch keine Auswahl bestätigt.</div>
-                <div style="font-size:.82rem; margin-top:.3rem;">Drehe das Glücksrad und bestätige die Auswahl, damit der erste Eintrag erscheint.</div>
+                <div style="font-size:.82rem; margin-top:.3rem;">Drehe das Dispatch-o-Mat und bestätige die Auswahl, damit der erste Eintrag erscheint.</div>
             </div>
         }
         else

@@ -1,6 +1,6 @@
 # UENT Dispatcher
 
-Wöchentliche Auslosung des Service-Desk-Dispatchers für den Jour fixe der Abteilung — als moderne, spielerische Web-App mit animiertem Glücksrad, 21-Tage-Sperrlogik und Verlaufsprotokoll.
+Wöchentliche Auslosung des Service-Desk-Dispatchers für den Jour fixe der Abteilung — als moderne, spielerische Web-App mit animiertem Dispatch-o-Mat, 21-Tage-Sperrlogik und Verlaufsprotokoll.
 
 ## Tech-Stack
 

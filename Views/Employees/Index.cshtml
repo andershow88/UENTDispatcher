@@ -8,7 +8,7 @@
     <div>
         <div class="app-page-title">👥 Das Team</div>
         <div class="app-page-subtitle">
-            Wer am Glücksrad teilnehmen darf. Inaktive Personen sind aus dem Pool ausgeschlossen.
+            Wer am Dispatch-o-Mat teilnehmen darf. Inaktive Personen sind aus dem Pool ausgeschlossen.
             @if (istAdmin)
             {
                 <span>Klick auf ein Foto, um es hochzuladen oder zu ersetzen.</span>
@@ -93,7 +93,7 @@
                                             class="toggle-switch @(e.IstAktiv ? "on" : "")"
                                             id="emp-active-@e.Id"
                                             onclick="onToggleActive(@e.Id, this)"
-                                            title="Am Glücksrad teilnehmen / nicht teilnehmen"></button>
+                                            title="Am Dispatch-o-Mat teilnehmen / nicht teilnehmen"></button>
                                 }
                                 else if (e.IstAktiv)
                                 {
@@ -242,7 +242,7 @@
             </div>
             <div class="toggle-row" id="empAktivRow">
                 <div>
-                    <div class="toggle-text-main">Aktiv (am Glücksrad teilnehmen)</div>
+                    <div class="toggle-text-main">Aktiv (am Dispatch-o-Mat teilnehmen)</div>
                     <div class="toggle-text-hint">Inaktive Personen sind aus dem Pool ausgeschlossen.</div>
                 </div>
                 <button type="button" id="empAktivSwitch" class="toggle-switch on" aria-label="Aktiv"></button>
