@@ -461,6 +461,70 @@ a:hover { color: var(--mc-petrol-dark); }
     line-height: 1;
 }
 
+/* ── Klappbare Status-Listen (Verfuegbar / Gesperrt) ─────────────────────
+   Standardmaessig zu, damit die ganze Seite ohne Scrollen lesbar bleibt.
+   Klick auf den farbigen Header oeffnet die Liste. */
+.status-collapsible {
+    margin-bottom: .6rem;
+    border-radius: var(--mc-radius-sm);
+    overflow: hidden;
+}
+.status-collapsible.green  {
+    background: linear-gradient(135deg, rgba(16,185,129,.06), rgba(16,185,129,.02));
+    border-left: 3px solid var(--mc-success);
+}
+.status-collapsible.amber {
+    background: linear-gradient(135deg, rgba(245,158,11,.06), rgba(245,158,11,.02));
+    border-left: 3px solid var(--mc-warning);
+}
+.status-collapsible summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    padding: .55rem .8rem;
+    user-select: none;
+}
+.status-collapsible summary::-webkit-details-marker { display: none; }
+.status-collapsible summary::marker { display: none; }
+.status-collapsible-label {
+    font-size: .72rem;
+    color: var(--mc-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 600;
+}
+.status-collapsible-count {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--mc-text-dark);
+    line-height: 1;
+    margin-left: auto;
+}
+.status-collapsible-chev {
+    color: var(--mc-text-muted);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.status-collapsible[open] .status-collapsible-chev {
+    transform: rotate(180deg);
+}
+.status-collapsible-body {
+    padding: .15rem .8rem .65rem;
+    border-top: 1px dashed rgba(0,0,0,.06);
+    margin-top: 0;
+    animation: collapsibleFadeIn .25s ease-out;
+}
+[data-theme="dark"] .status-collapsible-body {
+    border-top-color: rgba(255,255,255,.05);
+}
+@keyframes collapsibleFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .person-row {
     display: flex; align-items: center; gap: .6rem;
     padding: .45rem .25rem;

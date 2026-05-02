@@ -736,6 +736,9 @@
         fly.style.width = size + 'px';
         fly.style.height = size + 'px';
         fly.style.fontSize = size + 'px'; // Initialen skalieren mit em
+        // Expliziter Initial-Transform — sonst spinnt die Transition beim
+        // zweiten Spin nicht zuverlaessig (Browser sieht kein "Vorher").
+        fly.style.transform = 'rotate(0deg)';
 
         var firstName = (winner.anzeigename || '').split(' ')[0];
         var initials = (firstName.substring(0, 2) || '?').toUpperCase();
@@ -795,10 +798,15 @@
         state.activeFlyEl = fly;
 
         // 3. Phase A: in-place-Spin auf dem Rad (1.5s)
-        requestAnimationFrame(function () {
-            fly.style.transition = 'transform 1.5s cubic-bezier(.2, .8, .25, 1)';
-            fly.style.transform = 'rotate(720deg)';
-        });
+        //    Wichtig: Transition-Style setzen, dann Reflow erzwingen
+        //    (`void fly.offsetWidth`), dann erst Transform aendern. So
+        //    triggert die Transition zuverlaessig — auch beim zweiten,
+        //    dritten Spin im selben Tab. Ohne Reflow setzt der Browser
+        //    Transition + Transform-Aenderung in derselben Paint-Frame
+        //    und springt sofort zum Endwert.
+        fly.style.transition = 'transform 1.5s cubic-bezier(.2, .8, .25, 1)';
+        void fly.offsetWidth;
+        fly.style.transform = 'rotate(720deg)';
 
         // 4. Phase B nach 1.5s: Modal oeffnen, Endposition messen,
         //    Foto fliegt + waechst (2.5s)
@@ -812,6 +820,8 @@
                 var endCY = endRect.top + endRect.height / 2;
                 var endSize = endRect.width || 180;
 
+                // Auch hier: neuen Transition-Stil setzen, Reflow, dann erst
+                // alle Properties aendern → garantierte Transition-Trigger.
                 fly.style.transition =
                     'top 2.5s cubic-bezier(.18,.7,.25,1), ' +
                     'left 2.5s cubic-bezier(.18,.7,.25,1), ' +
@@ -819,6 +829,7 @@
                     'height 2.5s cubic-bezier(.18,.7,.25,1), ' +
                     'font-size 2.5s cubic-bezier(.18,.7,.25,1), ' +
                     'transform 2.5s cubic-bezier(.18,.7,.25,1)';
+                void fly.offsetWidth;
                 fly.style.left = (endCX - endSize / 2) + 'px';
                 fly.style.top = (endCY - endSize / 2) + 'px';
                 fly.style.width = endSize + 'px';

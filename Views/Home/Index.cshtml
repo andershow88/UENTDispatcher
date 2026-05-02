@@ -55,17 +55,23 @@
                 <div class="muted" style="font-size:.78rem;">Aktiv: <span id="totalActive">0</span></div>
             </div>
             <div class="mc-card-body">
-                <div class="status-card-section green">
-                    <div class="status-card-section-label">Verfügbar</div>
-                    <div class="status-card-section-count" id="availableCount">0</div>
-                </div>
-                <div id="availableList" style="margin-bottom: .8rem;"></div>
+                <details class="status-collapsible green">
+                    <summary>
+                        <span class="status-collapsible-label">Verfügbar</span>
+                        <span class="status-collapsible-count" id="availableCount">0</span>
+                        <i class="bi bi-chevron-down status-collapsible-chev"></i>
+                    </summary>
+                    <div id="availableList" class="status-collapsible-body"></div>
+                </details>
 
-                <div class="status-card-section amber">
-                    <div class="status-card-section-label">Gesperrt</div>
-                    <div class="status-card-section-count" id="lockedCount">0</div>
-                </div>
-                <div id="lockedList"></div>
+                <details class="status-collapsible amber">
+                    <summary>
+                        <span class="status-collapsible-label">Gesperrt</span>
+                        <span class="status-collapsible-count" id="lockedCount">0</span>
+                        <i class="bi bi-chevron-down status-collapsible-chev"></i>
+                    </summary>
+                    <div id="lockedList" class="status-collapsible-body"></div>
+                </details>
             </div>
         </div>
 
